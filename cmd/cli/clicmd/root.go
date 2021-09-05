@@ -3,10 +3,10 @@ package clicmd
 import (
 	"os"
 
-	nddv1 "github.com/yndd/ndd-core/apis/pkg/v1"
-	nddpkg "github.com/yndd/ndd-core/internal/nddpkg"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	nddv1 "github.com/yndd/ndd-core/apis/pkg/v1"
+	nddpkg "github.com/yndd/ndd-core/internal/nddpkg"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"

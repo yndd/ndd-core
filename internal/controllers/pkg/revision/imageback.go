@@ -24,11 +24,11 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	regv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
+	"github.com/pkg/errors"
+	"github.com/spf13/afero/tarfs"
 	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-core/internal/nddpkg"
 	"github.com/yndd/ndd-runtime/pkg/parser"
-	"github.com/pkg/errors"
-	"github.com/spf13/afero/tarfs"
 	corev1 "k8s.io/api/core/v1"
 )
 

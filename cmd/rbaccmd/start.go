@@ -19,10 +19,10 @@ package rbaccmd
 import (
 	"time"
 
-	"github.com/yndd/ndd-core/internal/controllers/rbac"
-	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/yndd/ndd-core/internal/controllers/rbac"
+	"github.com/yndd/ndd-runtime/pkg/logging"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"

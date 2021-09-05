@@ -7,9 +7,9 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
-	nddpkg "github.com/yndd/ndd-core/internal/nddpkg"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	nddpkg "github.com/yndd/ndd-core/internal/nddpkg"
 )
 
 const (

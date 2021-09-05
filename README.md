@@ -1,6 +1,6 @@
 # ndd-core [![Godoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/yndd/ndd-core)
 
-![![GitHub release](https://img.shields.io/github/release/yndd/ndd-core/all.svg?style=flat-square)](https://github.com/yndd/ndd-core/releases) [![Docker Pulls](https://img.shields.io/docker/pulls/yndd/ndd-core.svg)](https://img.shields.io/docker/pulls/yndd/ndd-core.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/yndd/ndd-core)](https://goreportcard.com/report/github.com/yndd/ndd-core) [![Twitter Follow](https://img.shields.io/twitter/follow/yndd.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=yndd&user_id=788180534543339520)
+![![GitHub release](https://img.shields.io/github/release/yndd/ndd-core/all.svg?style=flat-square)](https://github.com/yndd/ndd-core/releases) [![Docker Pulls](https://img.shields.io/docker/pulls/yndd/nddcore.svg)](https://img.shields.io/docker/pulls/yndd/ndd-core.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/yndd/ndd-core)](https://goreportcard.com/report/github.com/yndd/ndd-core) [![Twitter Follow](https://img.shields.io/twitter/follow/yndd.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=yndd&user_id=788180534543339520)
 
 ![ndd-core](docs/media/banner.png)
 

@@ -22,10 +22,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/pkg/errors"
 	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-core/internal/nddpkg"
 	"github.com/yndd/ndd-runtime/pkg/logging"
-	"github.com/pkg/errors"
 )
 
 const (

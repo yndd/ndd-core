@@ -20,8 +20,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/yndd/ndd-runtime/pkg/resource"
 	"github.com/pkg/errors"
+	"github.com/yndd/ndd-runtime/pkg/resource"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
