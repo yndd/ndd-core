@@ -1,0 +1,16 @@
+resources:
+- core.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- files:
+  - core_config.yaml
+  name: core-config
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: controller
+  newName: yndd/nddcore
+  newTag: latest

@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rbac
+  namespace: system
+spec:
+  template:
+    spec:
+      containers:
+      - name: rbac
+        args:
+        - "--config=rbac_config.yaml"
+        volumeMounts:
+        - name: rbac-config
+          mountPath: /rbac_config.yaml
+          subPath: rbac_config.yaml
+      volumes:
+      - name: rbac-config
+        configMap:
+          name: rbac-config

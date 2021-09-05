@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core
+  namespace: system
+spec:
+  template:
+    spec:
+      containers:
+      - name: core
+        args:
+        - "--core_config.yaml"
+        volumeMounts:
+        - name: core-config
+          mountPath: /core_config.yaml
+          subPath: core_config.yaml
+      volumes:
+      - name: core-config
+        configMap:
+          name: core-config

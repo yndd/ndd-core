@@ -1,0 +1,7 @@
+apiVersion: meta.pkg.ndd.yndd.io/v1
+kind: Provider
+metadata:
+  name: provider-sample
+spec:
+  # Add fields here
+  foo: bar

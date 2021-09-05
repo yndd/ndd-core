@@ -1,0 +1,11 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- pkg_v1_provider.yaml
+- pkg_v1_package.yaml
+- pkg_v1_revision.yaml
+- meta.pkg_v1_provider.yaml
+- pkg_v1_controllerconfig.yaml
+- pkg_v1_lock.yaml
+- dvr_v1_networknode.yaml
+- dvr_v1_devicedriver.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

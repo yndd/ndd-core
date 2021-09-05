@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rbac
+  namespace: system
+spec:
+  template:
+    spec:
+      containers:
+      - name: rbac
+        args:
+        - start
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
+        - --management-policy=Basic
+        #- --provider-clusterrole=ndd-manager-role
+        - --debug
+        image: yndd/nddrbac:latest
+        imagePullPolicy: Always

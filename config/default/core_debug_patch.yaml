@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core
+  namespace: system
+spec:
+  template:
+    spec:
+      containers:
+      - name: core
+        args:
+        - start
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
+        - --cache-dir=/cache
+        - --debug
+        image: yndd/nddcore:latest
+        imagePullPolicy: Always

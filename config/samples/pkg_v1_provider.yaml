@@ -1,0 +1,6 @@
+apiVersion: pkg.ndd.yndd.io/v1
+kind: Provider
+metadata:
+  name: test-provider
+spec:
+  package: crossplane/provider-aws:alpha

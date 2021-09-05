@@ -1,0 +1,16 @@
+resources:
+- rbac.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- files:
+  - rbac_config.yaml
+  name: rbac-config
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: controller
+  newName: yndd/nddrbac
+  newTag: latest

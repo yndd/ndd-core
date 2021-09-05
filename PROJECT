@@ -1,0 +1,76 @@
+domain: ndd.yndd.io
+layout:
+- go.kubebuilder.io/v3
+multigroup: true
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: ndd-core
+repo: github.com/yndd/ndd-core
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: ndd.yndd.io
+  group: pkg
+  kind: Provider
+  path: github.com/yndd/ndd-core/apis/pkg/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: ndd.yndd.io
+  group: pkg
+  kind: Package
+  path: github.com/yndd/ndd-core/apis/pkg/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: ndd.yndd.io
+  group: pkg
+  kind: Revision
+  path: github.com/yndd/ndd-core/apis/pkg/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: ndd.yndd.io
+  group: meta.pkg
+  kind: Provider
+  path: github.com/yndd/ndd-core/apis/meta.pkg/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: ndd.yndd.io
+  group: pkg
+  kind: ControllerConfig
+  path: github.com/yndd/ndd-core/apis/pkg/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: ndd.yndd.io
+  group: pkg
+  kind: Lock
+  path: github.com/yndd/ndd-core/apis/pkg/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: ndd.yndd.io
+  group: dvr
+  kind: NetworkNode
+  path: github.com/yndd/ndd-core/apis/dvr/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: ndd.yndd.io
+  group: dvr
+  kind: DeviceDriver
+  path: github.com/yndd/ndd-core/apis/dvr/v1
+  version: v1
+version: "3"
