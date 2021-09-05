@@ -29,3 +29,5 @@ PRIVATE.md
 tst/*
 conf/*
 .vscode/
+dist
+.goreleaser.yml
