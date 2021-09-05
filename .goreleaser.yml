@@ -1,0 +1,42 @@
+# Copyright 2020 Nokia
+# Licensed under the BSD 3-Clause License.
+# SPDX-License-Identifier: BSD-3-Clause
+
+project_name: kubectl-ndd
+builds:
+  - env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/yndd/ndd-core/cmd.version={{.Version}} -X github.com/yndd/ndd-core/cmd.commit={{.ShortCommit}} -X github.com/yndd/ndd-core/cmd.date={{.Date}}
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/cli
+archives:
+  - replacements:
+      linux: Linux
+checksum:
+  name_template: checksums.txt
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+nfpms:
+  - id: kubectl-ndd
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    package_name: kubectl-ndd
+    maintainer: Wim Henderickx <wim.henderickx@gmail.com>
+    description: |
+      kubectl-ndd extends kubectl with ndd utility commands
+    vendor: Nokia
+    license: GNU GPLv3
+    formats:
+      - rpm
+      - deb
+    bindir: /usr/local/bin

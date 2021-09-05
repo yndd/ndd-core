@@ -30,4 +30,3 @@ tst/*
 conf/*
 .vscode/
 dist
-.goreleaser.yml
