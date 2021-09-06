@@ -1,8 +1,11 @@
-# ndd-core [![Godoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/yndd/ndd-core)
+<p align=center><a href="https://nddocs.yndd.io"><img src=https://gitlab.com/rdodin/pics/-/wikis/uploads/9f2e581a8d207a21ff024a312679a239/containerlab_export_white_ink_3?sanitize=true/></a></p>
 
-![![GitHub release](https://img.shields.io/github/release/yndd/ndd-core/all.svg?style=flat-square)](https://github.com/yndd/ndd-core/releases) [![Docker Pulls](https://img.shields.io/docker/pulls/yndd/nddcore.svg)](https://img.shields.io/docker/pulls/yndd/ndd-core.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/yndd/ndd-core)](https://goreportcard.com/report/github.com/yndd/ndd-core) [![Twitter Follow](https://img.shields.io/twitter/follow/yndd.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=yndd&user_id=788180534543339520)
-
-![ndd-core](docs/media/banner.png)
+[![github release](https://img.shields.io/github/release/yndd/ndd-core-blue.svg?style=flat-square&color=00c9ff&labelColor=bec8d2)](https://github.com/yndd/ndd-core/releases/)
+[![Go Report](https://img.shields.io/badge/go%20report-A%2B-blue?style=flat-square&color=00c9ff&labelColor=bec8d2)](https://goreportcard.com/report/github.com/yndd/ndd-core)
+[![Godoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square&color=00c9ff&labelColor=bec8d2)](https://godoc.org/github.com/yndd/ndd-core)
+[![Doc](https://img.shields.io/badge/Docs-ndddocs.yndd.io-blue?style=flat-square&color=00c9ff&labelColor=bec8d2)](https://ndddocs.yndd.io)
+[![Docker Pulls](https://img.shields.io/docker/pulls/yndd/ndd-core-controller.svg?style=flat-square&color=00c9ff&labelColor=bec8d2)](https://img.shields.io/docker/pulls/yndd/ndd-core-controller.svg) 
+[![Twitter Follow](https://img.shields.io/twitter/follow/yndd.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=yndd&user_id=1434394355385651201)
 
 ## Overview
  
