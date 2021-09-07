@@ -243,6 +243,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		}
 	}
 
+	if nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status == corev1.ConditionTrue &&
+		nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverConfigured).Status  == corev1.ConditionTrue {
+		// this is most likely a restart of the ndd-core, given the status of the deployment of the network
+		// node is ok we should stop the reconciliation here
+		return reconcile.Result{}, nil
+	}
+
 	// when everything is validated we want to bring the deployment in healthy status by all means
 	if err := r.hooks.Deploy(ctx, nn, c); err != nil {
 		log.Debug(errCreateObjects, "error", err)
