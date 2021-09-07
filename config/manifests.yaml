@@ -337,7 +337,7 @@ spec:
                                     field and the ones listed in the namespaces field.
                                     null selector and null or empty namespaces list
                                     means "this pod's namespace". An empty selector
-                                    ({}) matches all namespaces. This field is alpha-level
+                                    ({}) matches all namespaces. This field is beta-level
                                     and is only honored when PodAffinityNamespaceSelector
                                     feature is enabled.
                                   properties:
@@ -493,7 +493,7 @@ spec:
                                 the ones listed in the namespaces field. null selector
                                 and null or empty namespaces list means "this pod's
                                 namespace". An empty selector ({}) matches all namespaces.
-                                This field is alpha-level and is only honored when
+                                This field is beta-level and is only honored when
                                 PodAffinityNamespaceSelector feature is enabled.
                               properties:
                                 matchExpressions:
@@ -646,7 +646,7 @@ spec:
                                     field and the ones listed in the namespaces field.
                                     null selector and null or empty namespaces list
                                     means "this pod's namespace". An empty selector
-                                    ({}) matches all namespaces. This field is alpha-level
+                                    ({}) matches all namespaces. This field is beta-level
                                     and is only honored when PodAffinityNamespaceSelector
                                     feature is enabled.
                                   properties:
@@ -802,7 +802,7 @@ spec:
                                 the ones listed in the namespaces field. null selector
                                 and null or empty namespaces list means "this pod's
                                 namespace". An empty selector ({}) matches all namespaces.
-                                This field is alpha-level and is only honored when
+                                This field is beta-level and is only honored when
                                 PodAffinityNamespaceSelector feature is enabled.
                               properties:
                                 matchExpressions:
@@ -896,12 +896,14 @@ spec:
                       type: string
                     value:
                       description: 'Variable references $(VAR_NAME) are expanded using
-                        the previous defined environment variables in the container
+                        the previously defined environment variables in the container
                         and any service environment variables. If a variable cannot
                         be resolved, the reference in the input string will be unchanged.
-                        The $(VAR_NAME) syntax can be escaped with a double $$, ie:
-                        $$(VAR_NAME). Escaped references will never be expanded, regardless
-                        of whether the variable exists or not. Defaults to "".'
+                        Double $$ are reduced to a single $, which allows for escaping
+                        the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the
+                        string literal "$(VAR_NAME)". Escaped references will never
+                        be expanded, regardless of whether the variable exists or
+                        not. Defaults to "".'
                       type: string
                     valueFrom:
                       description: Source for the environment variable's value. Cannot
@@ -1216,6 +1218,17 @@ spec:
                         description: GMSACredentialSpecName is the name of the GMSA
                           credential spec to use.
                         type: string
+                      hostProcess:
+                        description: HostProcess determines if a container should
+                          be run as a 'Host Process' container. This field is alpha-level
+                          and will only be honored by components that enable the WindowsHostProcessContainers
+                          feature flag. Setting this field without the feature flag
+                          will result in errors when validating the Pod. All of a
+                          Pod's containers must have the same effective HostProcess
+                          value (it is not allowed to have a mix of HostProcess containers
+                          and non-HostProcess containers).  In addition, if HostProcess
+                          is true then HostNetwork must also be set to true.
+                        type: boolean
                       runAsUserName:
                         description: The UserName in Windows to run the entrypoint
                           of the container process. Defaults to the user specified
@@ -1444,6 +1457,17 @@ spec:
                         description: GMSACredentialSpecName is the name of the GMSA
                           credential spec to use.
                         type: string
+                      hostProcess:
+                        description: HostProcess determines if a container should
+                          be run as a 'Host Process' container. This field is alpha-level
+                          and will only be honored by components that enable the WindowsHostProcessContainers
+                          feature flag. Setting this field without the feature flag
+                          will result in errors when validating the Pod. All of a
+                          Pod's containers must have the same effective HostProcess
+                          value (it is not allowed to have a mix of HostProcess containers
+                          and non-HostProcess containers).  In addition, if HostProcess
+                          is true then HostNetwork must also be set to true.
+                        type: boolean
                       runAsUserName:
                         description: The UserName in Windows to run the entrypoint
                           of the container process. Defaults to the user specified
@@ -1554,10 +1578,11 @@ spec:
                       CMD is used if this is not provided. Variable references $(VAR_NAME)
                       are expanded using the container''s environment. If a variable
                       cannot be resolved, the reference in the input string will be
-                      unchanged. The $(VAR_NAME) syntax can be escaped with a double
-                      $$, ie: $$(VAR_NAME). Escaped references will never be expanded,
-                      regardless of whether the variable exists or not. Cannot be
-                      updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell'
+                      unchanged. Double $$ are reduced to a single $, which allows
+                      for escaping the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will
+                      produce the string literal "$(VAR_NAME)". Escaped references
+                      will never be expanded, regardless of whether the variable exists
+                      or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell'
                     items:
                       type: string
                     type: array
@@ -1566,10 +1591,11 @@ spec:
                       docker image''s ENTRYPOINT is used if this is not provided.
                       Variable references $(VAR_NAME) are expanded using the container''s
                       environment. If a variable cannot be resolved, the reference
-                      in the input string will be unchanged. The $(VAR_NAME) syntax
-                      can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references
-                      will never be expanded, regardless of whether the variable exists
-                      or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell'
+                      in the input string will be unchanged. Double $$ are reduced
+                      to a single $, which allows for escaping the $(VAR_NAME) syntax:
+                      i.e. "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                      Escaped references will never be expanded, regardless of whether
+                      the variable exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell'
                     items:
                       type: string
                     type: array
@@ -1586,13 +1612,14 @@ spec:
                           type: string
                         value:
                           description: 'Variable references $(VAR_NAME) are expanded
-                            using the previous defined environment variables in the
-                            container and any service environment variables. If a
-                            variable cannot be resolved, the reference in the input
-                            string will be unchanged. The $(VAR_NAME) syntax can be
-                            escaped with a double $$, ie: $$(VAR_NAME). Escaped references
-                            will never be expanded, regardless of whether the variable
-                            exists or not. Defaults to "".'
+                            using the previously defined environment variables in
+                            the container and any service environment variables. If
+                            a variable cannot be resolved, the reference in the input
+                            string will be unchanged. Double $$ are reduced to a single
+                            $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                            Escaped references will never be expanded, regardless
+                            of whether the variable exists or not. Defaults to "".'
                           type: string
                         valueFrom:
                           description: Source for the environment variable's value.
@@ -2044,8 +2071,10 @@ spec:
                           will be used. Otherwise, this value overrides the value
                           provided by the pod spec. Value must be non-negative integer.
                           The value zero indicates stop immediately via the kill signal
-                          (no opportunity to shut down). This is an alpha field and
+                          (no opportunity to shut down). This is a beta field and
                           requires enabling ProbeTerminationGracePeriod feature gate.
+                          Minimum value is 1. spec.terminationGracePeriodSeconds is
+                          used if unset.
                         format: int64
                         type: integer
                       timeoutSeconds:
@@ -2226,8 +2255,10 @@ spec:
                           will be used. Otherwise, this value overrides the value
                           provided by the pod spec. Value must be non-negative integer.
                           The value zero indicates stop immediately via the kill signal
-                          (no opportunity to shut down). This is an alpha field and
+                          (no opportunity to shut down). This is a beta field and
                           requires enabling ProbeTerminationGracePeriod feature gate.
+                          Minimum value is 1. spec.terminationGracePeriodSeconds is
+                          used if unset.
                         format: int64
                         type: integer
                       timeoutSeconds:
@@ -2265,9 +2296,10 @@ spec:
                         type: object
                     type: object
                   securityContext:
-                    description: 'Security options the pod should run with. More info:
-                      https://kubernetes.io/docs/concepts/policy/security-context/
-                      More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/'
+                    description: 'SecurityContext defines the security options the
+                      container should be run with. If set, the fields of SecurityContext
+                      override the equivalent fields of PodSecurityContext. More info:
+                      https://kubernetes.io/docs/tasks/configure-pod-container/security-context/'
                     properties:
                       allowPrivilegeEscalation:
                         description: 'AllowPrivilegeEscalation controls whether a
@@ -2401,6 +2433,18 @@ spec:
                             description: GMSACredentialSpecName is the name of the
                               GMSA credential spec to use.
                             type: string
+                          hostProcess:
+                            description: HostProcess determines if a container should
+                              be run as a 'Host Process' container. This field is
+                              alpha-level and will only be honored by components that
+                              enable the WindowsHostProcessContainers feature flag.
+                              Setting this field without the feature flag will result
+                              in errors when validating the Pod. All of a Pod's containers
+                              must have the same effective HostProcess value (it is
+                              not allowed to have a mix of HostProcess containers
+                              and non-HostProcess containers).  In addition, if HostProcess
+                              is true then HostNetwork must also be set to true.
+                            type: boolean
                           runAsUserName:
                             description: The UserName in Windows to run the entrypoint
                               of the container process. Defaults to the user specified
@@ -2536,8 +2580,10 @@ spec:
                           will be used. Otherwise, this value overrides the value
                           provided by the pod spec. Value must be non-negative integer.
                           The value zero indicates stop immediately via the kill signal
-                          (no opportunity to shut down). This is an alpha field and
+                          (no opportunity to shut down). This is a beta field and
                           requires enabling ProbeTerminationGracePeriod feature gate.
+                          Minimum value is 1. spec.terminationGracePeriodSeconds is
+                          used if unset.
                         format: int64
                         type: integer
                       timeoutSeconds:
@@ -3000,10 +3046,12 @@ spec:
                           CMD is used if this is not provided. Variable references
                           $(VAR_NAME) are expanded using the container''s environment.
                           If a variable cannot be resolved, the reference in the input
-                          string will be unchanged. The $(VAR_NAME) syntax can be
-                          escaped with a double $$, ie: $$(VAR_NAME). Escaped references
-                          will never be expanded, regardless of whether the variable
-                          exists or not. Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell'
+                          string will be unchanged. Double $$ are reduced to a single
+                          $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                          "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                          Escaped references will never be expanded, regardless of
+                          whether the variable exists or not. Cannot be updated. More
+                          info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell'
                         items:
                           type: string
                         type: array
@@ -3012,11 +3060,12 @@ spec:
                           The docker image''s ENTRYPOINT is used if this is not provided.
                           Variable references $(VAR_NAME) are expanded using the container''s
                           environment. If a variable cannot be resolved, the reference
-                          in the input string will be unchanged. The $(VAR_NAME) syntax
-                          can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
-                          references will never be expanded, regardless of whether
-                          the variable exists or not. Cannot be updated. More info:
-                          https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell'
+                          in the input string will be unchanged. Double $$ are reduced
+                          to a single $, which allows for escaping the $(VAR_NAME)
+                          syntax: i.e. "$$(VAR_NAME)" will produce the string literal
+                          "$(VAR_NAME)". Escaped references will never be expanded,
+                          regardless of whether the variable exists or not. Cannot
+                          be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell'
                         items:
                           type: string
                         type: array
@@ -3033,14 +3082,15 @@ spec:
                               type: string
                             value:
                               description: 'Variable references $(VAR_NAME) are expanded
-                                using the previous defined environment variables in
-                                the container and any service environment variables.
+                                using the previously defined environment variables
+                                in the container and any service environment variables.
                                 If a variable cannot be resolved, the reference in
-                                the input string will be unchanged. The $(VAR_NAME)
-                                syntax can be escaped with a double $$, ie: $$(VAR_NAME).
-                                Escaped references will never be expanded, regardless
-                                of whether the variable exists or not. Defaults to
-                                "".'
+                                the input string will be unchanged. Double $$ are
+                                reduced to a single $, which allows for escaping the
+                                $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce
+                                the string literal "$(VAR_NAME)". Escaped references
+                                will never be expanded, regardless of whether the
+                                variable exists or not. Defaults to "".'
                               type: string
                             valueFrom:
                               description: Source for the environment variable's value.
@@ -3505,9 +3555,10 @@ spec:
                               Otherwise, this value overrides the value provided by
                               the pod spec. Value must be non-negative integer. The
                               value zero indicates stop immediately via the kill signal
-                              (no opportunity to shut down). This is an alpha field
+                              (no opportunity to shut down). This is a beta field
                               and requires enabling ProbeTerminationGracePeriod feature
-                              gate.
+                              gate. Minimum value is 1. spec.terminationGracePeriodSeconds
+                              is used if unset.
                             format: int64
                             type: integer
                           timeoutSeconds:
@@ -3692,9 +3743,10 @@ spec:
                               Otherwise, this value overrides the value provided by
                               the pod spec. Value must be non-negative integer. The
                               value zero indicates stop immediately via the kill signal
-                              (no opportunity to shut down). This is an alpha field
+                              (no opportunity to shut down). This is a beta field
                               and requires enabling ProbeTerminationGracePeriod feature
-                              gate.
+                              gate. Minimum value is 1. spec.terminationGracePeriodSeconds
+                              is used if unset.
                             format: int64
                             type: integer
                           timeoutSeconds:
@@ -3733,8 +3785,9 @@ spec:
                             type: object
                         type: object
                       securityContext:
-                        description: 'Security options the pod should run with. More
-                          info: https://kubernetes.io/docs/concepts/policy/security-context/
+                        description: 'SecurityContext defines the security options
+                          the container should be run with. If set, the fields of
+                          SecurityContext override the equivalent fields of PodSecurityContext.
                           More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/'
                         properties:
                           allowPrivilegeEscalation:
@@ -3873,6 +3926,19 @@ spec:
                                 description: GMSACredentialSpecName is the name of
                                   the GMSA credential spec to use.
                                 type: string
+                              hostProcess:
+                                description: HostProcess determines if a container
+                                  should be run as a 'Host Process' container. This
+                                  field is alpha-level and will only be honored by
+                                  components that enable the WindowsHostProcessContainers
+                                  feature flag. Setting this field without the feature
+                                  flag will result in errors when validating the Pod.
+                                  All of a Pod's containers must have the same effective
+                                  HostProcess value (it is not allowed to have a mix
+                                  of HostProcess containers and non-HostProcess containers).  In
+                                  addition, if HostProcess is true then HostNetwork
+                                  must also be set to true.
+                                type: boolean
                               runAsUserName:
                                 description: The UserName in Windows to run the entrypoint
                                   of the container process. Defaults to the user specified
@@ -4010,9 +4076,10 @@ spec:
                               Otherwise, this value overrides the value provided by
                               the pod spec. Value must be non-negative integer. The
                               value zero indicates stop immediately via the kill signal
-                              (no opportunity to shut down). This is an alpha field
+                              (no opportunity to shut down). This is a beta field
                               and requires enabling ProbeTerminationGracePeriod feature
-                              gate.
+                              gate. Minimum value is 1. spec.terminationGracePeriodSeconds
+                              is used if unset.
                             format: int64
                             type: integer
                           timeoutSeconds:
@@ -4550,14 +4617,14 @@ spec:
                       type: array
                     resources:
                       description: Resources is a list of resources this rule applies
-                        to.  ResourceAll represents all resources.
+                        to. '*' represents all resources.
                       items:
                         type: string
                       type: array
                     verbs:
                       description: Verbs is a list of Verbs that apply to ALL the
                         ResourceKinds and AttributeRestrictions contained in this
-                        rule.  VerbAll represents all kinds.
+                        rule. '*' represents all verbs.
                       items:
                         type: string
                       type: array
@@ -4658,14 +4725,14 @@ spec:
                           type: array
                         resources:
                           description: Resources is a list of resources this rule
-                            applies to.  ResourceAll represents all resources.
+                            applies to. '*' represents all resources.
                           items:
                             type: string
                           type: array
                         verbs:
                           description: Verbs is a list of Verbs that apply to ALL
                             the ResourceKinds and AttributeRestrictions contained
-                            in this rule.  VerbAll represents all kinds.
+                            in this rule. '*' represents all verbs.
                           items:
                             type: string
                           type: array
@@ -4971,6 +5038,7 @@ rules:
   - delete
   - get
   - list
+  - patch
   - update
   - watch
 - apiGroups:
@@ -5038,6 +5106,7 @@ rules:
   - delete
   - get
   - list
+  - patch
   - update
   - watch
 - apiGroups:
@@ -5442,11 +5511,11 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 100m
-            memory: 30Mi
+            cpu: 1000m
+            memory: 2000Mi
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 100Mi
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

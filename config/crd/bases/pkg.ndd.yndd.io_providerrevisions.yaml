@@ -244,14 +244,14 @@ spec:
                       type: array
                     resources:
                       description: Resources is a list of resources this rule applies
-                        to.  ResourceAll represents all resources.
+                        to. '*' represents all resources.
                       items:
                         type: string
                       type: array
                     verbs:
                       description: Verbs is a list of Verbs that apply to ALL the
                         ResourceKinds and AttributeRestrictions contained in this
-                        rule.  VerbAll represents all kinds.
+                        rule. '*' represents all verbs.
                       items:
                         type: string
                       type: array

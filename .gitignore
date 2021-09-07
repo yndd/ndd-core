@@ -27,6 +27,7 @@ testbin/*
 *~
 PRIVATE.md
 tst/*
+test
 conf/*
 .vscode/
 dist
