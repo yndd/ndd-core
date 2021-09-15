@@ -164,6 +164,34 @@ func SetupProvider(mgr ctrl.Manager, l logging.Logger, namespace string) error {
 		Complete(r)
 }
 
+// SetupIntent adds a controller that reconciles Intents.
+func SetupIntent(mgr ctrl.Manager, l logging.Logger, namespace string) error {
+	name := "packages/" + strings.ToLower(v1.IntentGroupKind)
+	np := func() v1.Package { return &v1.Intent{} }
+	nr := func() v1.PackageRevision { return &v1.IntentRevision{} }
+	nrl := func() v1.PackageRevisionList { return &v1.IntentRevisionList{} }
+
+	clientset, err := kubernetes.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize clientset")
+	}
+
+	r := NewReconciler(mgr,
+		WithNewPackageFn(np),
+		WithNewPackageRevisionFn(nr),
+		WithNewPackageRevisionListFn(nrl),
+		WithRevisioner(NewPackageRevisioner(nddpkg.NewK8sFetcher(clientset, namespace))),
+		WithLogger(l.WithValues("controller", name)),
+		WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
+	)
+
+	return ctrl.NewControllerManagedBy(mgr).
+		Named(name).
+		For(&v1.Intent{}).
+		Owns(&v1.IntentRevision{}).
+		Complete(r)
+}
+
 // NewReconciler creates a new package reconciler.
 func NewReconciler(mgr ctrl.Manager, opts ...ReconcilerOption) *Reconciler {
 	r := &Reconciler{
@@ -192,6 +220,12 @@ func NewReconciler(mgr ctrl.Manager, opts ...ReconcilerOption) *Reconciler {
 // +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=providers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=providers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=providers/finalizers,verbs=update
+// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intentrevisions,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intentrevisions/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intentrevisions/finalizers,verbs=update
+// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intents,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intents/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intents/finalizers,verbs=update
 
 // Reconcile package.
 func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) { // nolint:gocyclo

@@ -229,6 +229,46 @@ func SetupProviderRevision(mgr ctrl.Manager, l logging.Logger, cache nddpkg.Cach
 		Complete(r)
 }
 
+// SetupIntentRevision adds a controller that reconciles IntentRevisions.
+func SetupIntentRevision(mgr ctrl.Manager, l logging.Logger, cache nddpkg.Cache, namespace string) error {
+	name := "packages/" + strings.ToLower(v1.IntentRevisionGroupKind)
+	nr := func() v1.PackageRevision { return &v1.IntentRevision{} }
+
+	clientset, err := kubernetes.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize host clientset with in cluster config")
+	}
+
+	metaScheme, err := nddpkg.BuildMetaScheme()
+	if err != nil {
+		return errors.New("cannot build meta scheme for package parser")
+	}
+	objScheme, err := nddpkg.BuildObjectScheme()
+	if err != nil {
+		return errors.New("cannot build object scheme for package parser")
+	}
+
+	r := NewReconciler(mgr,
+		WithCache(cache),
+		WithDependencyManager(NewPackageDependencyManager(mgr.GetClient(), dag.NewMapDag, pkgmetav1.IntentPackageType)),
+		WithHooks(NewIntentHooks(resource.ClientApplicator{
+			Client:     mgr.GetClient(),
+			Applicator: resource.NewAPIPatchingApplicator(mgr.GetClient()),
+		}, namespace)),
+		WithNewPackageRevisionFn(nr),
+		WithParser(parser.New(metaScheme, objScheme)),
+		WithParserBackend(NewImageBackend(cache, nddpkg.NewK8sFetcher(clientset, namespace))),
+		WithLinter(nddpkg.NewIntentLinter()),
+		WithLogger(l.WithValues("controller", name)),
+		WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
+	)
+
+	return ctrl.NewControllerManagedBy(mgr).
+		Named(name).
+		For(&v1.IntentRevision{}).
+		Complete(r)
+}
+
 // NewReconciler creates a new package revision reconciler.
 func NewReconciler(mgr manager.Manager, opts ...ReconcilerOption) *Reconciler {
 

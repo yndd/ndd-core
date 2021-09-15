@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -32,13 +33,15 @@ import (
 )
 
 const (
-	errGetNameFromMeta = "failed to get name from crossplane.yaml"
+	errGetNameFromMeta = "failed to get name from ndd.yaml"
+	errGetKindFromMeta = "failed to get kind from ndd.yaml"
 	errBuildPackage    = "failed to build package"
 	errImageDigest     = "failed to get package digest"
 	errCreatePackage   = "failed to create package file"
 )
 
 var packageRoot string
+var packageType string
 var ignore []string
 
 // buildCmd represents the build command
@@ -83,13 +86,27 @@ var buildCmd = &cobra.Command{
 		if err != nil {
 			return errors.New("cannot build object scheme for package parser")
 		}
-		img, err := nddpkg.Build(context.Background(),
-			parser.NewFsBackend(buildChild.fs, parser.FsDir(root), parser.FsFilters(buildFilters(root, ignore)...)),
-			parser.New(metaScheme, objScheme),
-			buildChild.linter)
-		if err != nil {
-			return errors.Wrap(err, errBuildPackage)
+
+		var img v1.Image
+		switch packageType {
+		case "intent":
+			img, err = nddpkg.Build(context.Background(),
+				parser.NewFsBackend(buildChild.fs, parser.FsDir(root), parser.FsFilters(buildFilters(root, ignore)...)),
+				parser.New(metaScheme, objScheme),
+				nddpkg.NewIntentLinter())
+			if err != nil {
+				return errors.Wrap(err, errBuildPackage)
+			}
+		default:
+			img, err = nddpkg.Build(context.Background(),
+				parser.NewFsBackend(buildChild.fs, parser.FsDir(root), parser.FsFilters(buildFilters(root, ignore)...)),
+				parser.New(metaScheme, objScheme),
+				nddpkg.NewProviderLinter())
+			if err != nil {
+				return errors.Wrap(err, errBuildPackage)
+			}
 		}
+		fmt.Printf("packageType: %s\n", packageType)
 
 		hash, err := img.Digest()
 		if err != nil {
@@ -116,11 +133,11 @@ var buildCmd = &cobra.Command{
 
 func init() {
 	i := make([]string, 0)
-	providerCmd.AddCommand(buildCmd)
+	packageCmd.AddCommand(buildCmd)
 	buildCmd.Flags().StringVarP(&packageRoot, "PackageRoot", "f", ".", "Path to package directory.")
 	buildCmd.Flags().StringSliceVarP(&ignore, "Ignore", "", i, "Paths, specified relative to --package-root, to exclude from the package.")
 	buildCmd.Flags().StringVarP(&packageName, "PackageName", "n", "", "Name of the package to be built. Uses name in ndd.yaml if not specified. Does not correspond to package tag.")
-
+	buildCmd.Flags().StringVarP(&packageType, "PackageType", "t", "provider", "Type of the package to be built. default: provider, other options: intent")
 }
 
 // default build filters skip directories, empty files, and files without YAML

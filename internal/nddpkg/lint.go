@@ -31,7 +31,8 @@ import (
 const (
 	errNotExactlyOneMeta  = "not exactly one package meta type"
 	errNotMeta            = "meta type is not a package"
-	errNotMetaProvider    = "package meta type is not Provider"
+	errNotMetaProvider    = "package meta type is not a Provider"
+	errNotMetaIntent      = "package meta type is not an Intent"
 	errNotCRD             = "object is not a CRD"
 	errBadConstraints     = "package version constraints are poorly formatted"
 	errNddIncompatibleFmt = "package is not compatible with Ndd version (%s)"
@@ -41,6 +42,12 @@ const (
 // providers.
 func NewProviderLinter() parser.Linter {
 	return parser.NewPackageLinter(parser.PackageLinterFns(OneMeta), parser.ObjectLinterFns(IsProvider, PackageValidSemver), parser.ObjectLinterFns(IsCRD))
+}
+
+// NewIntentLinter is a convenience function for creating a package linter for
+// intents.
+func NewIntentLinter() parser.Linter {
+	return parser.NewPackageLinter(parser.PackageLinterFns(OneMeta), parser.ObjectLinterFns(IsIntent, PackageValidSemver), parser.ObjectLinterFns(IsCRD))
 }
 
 // OneMeta checks that there is only one meta object in the package.
@@ -56,6 +63,15 @@ func IsProvider(o runtime.Object) error {
 	po, _ := TryConvert(o, &pkgmetav1.Provider{})
 	if _, ok := po.(*pkgmetav1.Provider); !ok {
 		return errors.New(errNotMetaProvider)
+	}
+	return nil
+}
+
+// IsIntent checks that an object is a Intent meta type.
+func IsIntent(o runtime.Object) error {
+	po, _ := TryConvert(o, &pkgmetav1.Intent{})
+	if _, ok := po.(*pkgmetav1.Intent); !ok {
+		return errors.New(errNotMetaIntent)
 	}
 	return nil
 }

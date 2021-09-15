@@ -147,6 +147,58 @@ rules:
 - apiGroups:
   - pkg.ndd.yndd.io
   resources:
+  - intentrevisions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - pkg.ndd.yndd.io
+  resources:
+  - intentrevisions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - pkg.ndd.yndd.io
+  resources:
+  - intentrevisions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - pkg.ndd.yndd.io
+  resources:
+  - intents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - pkg.ndd.yndd.io
+  resources:
+  - intents/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - pkg.ndd.yndd.io
+  resources:
+  - intents/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - pkg.ndd.yndd.io
+  resources:
   - locks
   verbs:
   - create

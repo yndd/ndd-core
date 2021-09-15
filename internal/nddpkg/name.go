@@ -17,6 +17,7 @@ limitations under the License.
 package nddpkg
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -102,6 +103,19 @@ func ParseNameFromMeta(fs afero.Fs, path string) (string, error) {
 	return pkgName, nil
 }
 
+// ParseKindFromMeta extracts the package kind from its meta file.
+func ParseKindFromMeta(fs afero.Fs, path string) (string, error) {
+	bs, err := afero.ReadFile(fs, filepath.Clean(path))
+	if err != nil {
+		return "", err
+	}
+	pkgKind, err := parseKindFromPackage(bs)
+	if err != nil {
+		return "", err
+	}
+	return pkgKind, nil
+}
+
 // ParsePackageSourceFromReference parses a package source from an OCI image
 // reference. A source is defined as an OCI image reference with the identifier
 // (tag or digest) stripped and no other changes to the original reference
@@ -116,6 +130,7 @@ func ParsePackageSourceFromReference(ref name.Reference) string {
 type metaPkg struct {
 	Metadata struct {
 		Name string `json:"name"`
+		Kind string `json:"kind"`
 	}
 }
 
@@ -123,4 +138,11 @@ func parseNameFromPackage(bs []byte) (string, error) {
 	p := &metaPkg{}
 	err := yaml.Unmarshal(bs, p)
 	return p.Metadata.Name, err
+}
+
+func parseKindFromPackage(bs []byte) (string, error) {
+	p := &metaPkg{}
+	err := yaml.Unmarshal(bs, p)
+	fmt.Printf("Package: %v\n", p)
+	return p.Metadata.Kind, err
 }

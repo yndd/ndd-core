@@ -48,6 +48,7 @@ const (
 
 	// errors
 	errGetPR        = "cannot get ProviderRevision"
+	errGetIR        = "cannot get IntentRevision"
 	errListSAs      = "cannot list ServiceAccounts"
 	errApplyBinding = "cannot apply ClusterRoleBinding"
 
@@ -61,8 +62,11 @@ const (
 // Setup adds a controller that reconciles a ProviderRevision by creating a
 // ClusterRoleBinding that binds a provider's service account to its system
 // ClusterRole.
-func Setup(mgr ctrl.Manager, log logging.Logger) error {
+func SetupProvider(mgr ctrl.Manager, log logging.Logger) error {
 	name := "rbac/" + strings.ToLower(v1.ProviderRevisionGroupKind)
+	np := func() v1.Package { return &v1.Provider{} }
+	nr := func() v1.PackageRevision { return &v1.ProviderRevision{} }
+	nrl := func() v1.PackageRevisionList { return &v1.ProviderRevisionList{} }
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -71,6 +75,32 @@ func Setup(mgr ctrl.Manager, log logging.Logger) error {
 		Watches(&source.Kind{Type: &corev1.ServiceAccount{}}, &handler.EnqueueRequestForOwner{OwnerType: &v1.ProviderRevision{}}).
 		WithOptions(kcontroller.Options{MaxConcurrentReconciles: maxConcurrency}).
 		Complete(NewReconciler(mgr,
+			WithNewPackageFn(np),
+			WithNewPackageRevisionFn(nr),
+			WithNewPackageRevisionListFn(nrl),
+			WithLogger(log.WithValues("controller", name)),
+			WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
+}
+
+// Setup adds a controller that reconciles a IntentRevision by creating a
+// ClusterRoleBinding that binds a Intent's service account to its system
+// ClusterRole.
+func SetupIntent(mgr ctrl.Manager, log logging.Logger) error {
+	name := "rbac/" + strings.ToLower(v1.IntentRevisionGroupKind)
+	np := func() v1.Package { return &v1.Intent{} }
+	nr := func() v1.PackageRevision { return &v1.IntentRevision{} }
+	nrl := func() v1.PackageRevisionList { return &v1.IntentRevisionList{} }
+
+	return ctrl.NewControllerManagedBy(mgr).
+		Named(name).
+		For(&v1.IntentRevision{}).
+		Owns(&rbacv1.ClusterRoleBinding{}).
+		Watches(&source.Kind{Type: &corev1.ServiceAccount{}}, &handler.EnqueueRequestForOwner{OwnerType: &v1.IntentRevision{}}).
+		WithOptions(kcontroller.Options{MaxConcurrentReconciles: maxConcurrency}).
+		Complete(NewReconciler(mgr,
+			WithNewPackageFn(np),
+			WithNewPackageRevisionFn(nr),
+			WithNewPackageRevisionListFn(nrl),
 			WithLogger(log.WithValues("controller", name)),
 			WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -89,6 +119,27 @@ func WithLogger(log logging.Logger) ReconcilerOption {
 func WithRecorder(er event.Recorder) ReconcilerOption {
 	return func(r *Reconciler) {
 		r.record = er
+	}
+}
+
+// WithNewPackageFn determines the type of package being reconciled.
+func WithNewPackageFn(f func() v1.Package) ReconcilerOption {
+	return func(r *Reconciler) {
+		r.newPackage = f
+	}
+}
+
+// WithNewPackageRevisionFn determines the type of package being reconciled.
+func WithNewPackageRevisionFn(f func() v1.PackageRevision) ReconcilerOption {
+	return func(r *Reconciler) {
+		r.newPackageRevision = f
+	}
+}
+
+// WithNewPackageRevisionListFn determines the type of package being reconciled.
+func WithNewPackageRevisionListFn(f func() v1.PackageRevisionList) ReconcilerOption {
+	return func(r *Reconciler) {
+		r.newPackageRevisionList = f
 	}
 }
 
@@ -114,9 +165,12 @@ func NewReconciler(mgr manager.Manager, opts ...ReconcilerOption) *Reconciler {
 // A Reconciler reconciles ProviderRevisions.
 type Reconciler struct {
 	client resource.ClientApplicator
-
 	log    logging.Logger
 	record event.Recorder
+
+	newPackage             func() v1.Package
+	newPackageRevision     func() v1.PackageRevision
+	newPackageRevisionList func() v1.PackageRevisionList
 }
 
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=*
@@ -128,14 +182,14 @@ type Reconciler struct {
 // Reconcile a ProviderRevision by creating a ClusterRoleBinding that binds a
 // provider's service account to its system ClusterRole.
 func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-
 	log := r.log.WithValues("request", req)
 	log.Debug("Reconciling")
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	pr := &v1.ProviderRevision{}
+	pr := r.newPackageRevision()
+	//pr := &v1.ProviderRevision{}
 	if err := r.client.Get(ctx, req.NamespacedName, pr); err != nil {
 		// In case object is not found, most likely the object was deleted and
 		// then disappeared while the event was in the processing queue. We
@@ -179,7 +233,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		}
 	}
 
-	n := roles.SystemClusterRoleName(pr.GetName())
+	var n string
+	switch pr.GetKind() {
+	case v1.IntentRevisionKind:
+		// Intent Revision
+		n = roles.SystemClusterIntentRoleName(pr.GetName())
+	default:
+		// Provider Revision
+		n = roles.SystemClusterProviderRoleName(pr.GetName())
+	}
+
 	ref := meta.AsController(meta.TypedReferenceTo(pr, v1.ProviderRevisionGroupVersionKind))
 	rb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{

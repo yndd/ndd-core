@@ -34,6 +34,7 @@ var (
 	pushChild    *PushChild
 	packageName  string
 	providerName string
+	intentName   string
 	scheme       = runtime.NewScheme()
 )
 
@@ -60,8 +61,9 @@ func init() {
 	//rootCmd.Flags().StringVarP(&providerName, "providerName", "n", "", "Name of Provider.")
 
 	buildChild = &BuildChild{
-		fs:     afero.NewOsFs(),
-		linter: nddpkg.NewProviderLinter(),
+		fs:             afero.NewOsFs(),
+		providerLinter: nddpkg.NewProviderLinter(),
+		intentLinter:   nddpkg.NewIntentLinter(),
 	}
 	pushChild = &PushChild{
 		fs: afero.NewOsFs(),

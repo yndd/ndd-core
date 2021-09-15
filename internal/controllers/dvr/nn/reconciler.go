@@ -243,6 +243,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		}
 	}
 
+	log.Debug("Condition Status", "Healthy", nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status, "Configured", nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverConfigured).Status)
 	if nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status == corev1.ConditionTrue &&
 		nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverConfigured).Status == corev1.ConditionTrue {
 		// this is most likely a restart of the ndd-core, given the status of the deployment of the network

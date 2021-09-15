@@ -46,7 +46,7 @@ const (
 	maxConcurrency = 5
 
 	//errprs
-	errGetPR               = "cannot get ProviderRevision"
+	errGetPR               = "cannot get Package Revision"
 	errListCRDs            = "cannot list CustomResourceDefinitions"
 	errApplyRole           = "cannot apply ClusterRole"
 	errValidatePermissions = "cannot validate permission requests"
@@ -77,22 +77,25 @@ func (fn PermissionRequestsValidatorFn) ValidatePermissionRequests(ctx context.C
 // A ClusterRoleRenderer renders ClusterRoles for the given CRDs.
 type ClusterRoleRenderer interface {
 	// RenderClusterRoles for the supplied CRDs.
-	RenderClusterRoles(pr *v1.ProviderRevision, crds []extv1.CustomResourceDefinition) []rbacv1.ClusterRole
+	RenderClusterRoles(pr *v1.PackageRevision, crds []extv1.CustomResourceDefinition) []rbacv1.ClusterRole
 }
 
 // A ClusterRoleRenderFn renders ClusterRoles for the supplied CRDs.
-type ClusterRoleRenderFn func(pr *v1.ProviderRevision, crds []extv1.CustomResourceDefinition) []rbacv1.ClusterRole
+type ClusterRoleRenderFn func(pr *v1.PackageRevision, crds []extv1.CustomResourceDefinition) []rbacv1.ClusterRole
 
 // RenderClusterRoles renders ClusterRoles for the supplied CRDs.
-func (fn ClusterRoleRenderFn) RenderClusterRoles(pr *v1.ProviderRevision, crds []extv1.CustomResourceDefinition) []rbacv1.ClusterRole {
+func (fn ClusterRoleRenderFn) RenderClusterRoles(pr *v1.PackageRevision, crds []extv1.CustomResourceDefinition) []rbacv1.ClusterRole {
 	return fn(pr, crds)
 }
 
 // Setup adds a controller that reconciles a ProviderRevision by creating a
 // series of opinionated ClusterRoles that may be bound to allow access to the
 // resources it defines.
-func Setup(mgr ctrl.Manager, log logging.Logger, allowClusterRole string) error {
+func SetupProvider(mgr ctrl.Manager, log logging.Logger, allowClusterRole string) error {
 	name := "rbac/" + strings.ToLower(v1.ProviderRevisionGroupKind)
+	np := func() v1.Package { return &v1.Provider{} }
+	nr := func() v1.PackageRevision { return &v1.ProviderRevision{} }
+	nrl := func() v1.PackageRevisionList { return &v1.ProviderRevisionList{} }
 
 	if allowClusterRole != "" {
 
@@ -107,6 +110,9 @@ func Setup(mgr ctrl.Manager, log logging.Logger, allowClusterRole string) error 
 			Watches(&source.Kind{Type: &rbacv1.ClusterRole{}}, h).
 			WithOptions(kcontroller.Options{MaxConcurrentReconciles: maxConcurrency}).
 			Complete(NewReconciler(mgr,
+				WithNewPackageFn(np),
+				WithNewPackageRevisionFn(nr),
+				WithNewPackageRevisionListFn(nrl),
 				WithLogger(log.WithValues("controller", name)),
 				WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 				WithPermissionRequestsValidator(NewClusterRoleBackedValidator(mgr.GetClient(), allowClusterRole)),
@@ -119,6 +125,54 @@ func Setup(mgr ctrl.Manager, log logging.Logger, allowClusterRole string) error 
 		Owns(&rbacv1.ClusterRole{}).
 		WithOptions(kcontroller.Options{MaxConcurrentReconciles: maxConcurrency}).
 		Complete(NewReconciler(mgr,
+			WithNewPackageFn(np),
+			WithNewPackageRevisionFn(nr),
+			WithNewPackageRevisionListFn(nrl),
+			WithLogger(log.WithValues("controller", name)),
+			WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
+		))
+}
+
+// Setup adds a controller that reconciles a IntentRevision by creating a
+// series of opinionated ClusterRoles that may be bound to allow access to the
+// resources it defines.
+func SetupIntent(mgr ctrl.Manager, log logging.Logger, allowClusterRole string) error {
+	name := "rbac/" + strings.ToLower(v1.IntentRevisionGroupKind)
+	np := func() v1.Package { return &v1.Intent{} }
+	nr := func() v1.PackageRevision { return &v1.IntentRevision{} }
+	nrl := func() v1.PackageRevisionList { return &v1.IntentRevisionList{} }
+
+	if allowClusterRole != "" {
+
+		h := &EnqueueRequestForAllRevisionsWithRequests{
+			client:          mgr.GetClient(),
+			clusterRoleName: allowClusterRole}
+
+		return ctrl.NewControllerManagedBy(mgr).
+			Named(name).
+			For(&v1.IntentRevision{}).
+			Owns(&rbacv1.ClusterRole{}).
+			Watches(&source.Kind{Type: &rbacv1.ClusterRole{}}, h).
+			WithOptions(kcontroller.Options{MaxConcurrentReconciles: maxConcurrency}).
+			Complete(NewReconciler(mgr,
+				WithNewPackageFn(np),
+				WithNewPackageRevisionFn(nr),
+				WithNewPackageRevisionListFn(nrl),
+				WithLogger(log.WithValues("controller", name)),
+				WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
+				WithPermissionRequestsValidator(NewClusterRoleBackedValidator(mgr.GetClient(), allowClusterRole)),
+			))
+	}
+
+	return ctrl.NewControllerManagedBy(mgr).
+		Named(name).
+		For(&v1.IntentRevision{}).
+		Owns(&rbacv1.ClusterRole{}).
+		WithOptions(kcontroller.Options{MaxConcurrentReconciles: maxConcurrency}).
+		Complete(NewReconciler(mgr,
+			WithNewPackageFn(np),
+			WithNewPackageRevisionFn(nr),
+			WithNewPackageRevisionListFn(nrl),
 			WithLogger(log.WithValues("controller", name)),
 			WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 		))
@@ -157,7 +211,28 @@ func WithPermissionRequestsValidator(rv PermissionRequestsValidator) ReconcilerO
 	}
 }
 
-// NewReconciler returns a Reconciler of ProviderRevisions.
+// WithNewPackageFn determines the type of package being reconciled.
+func WithNewPackageFn(f func() v1.Package) ReconcilerOption {
+	return func(r *Reconciler) {
+		r.newPackage = f
+	}
+}
+
+// WithNewPackageRevisionFn determines the type of package being reconciled.
+func WithNewPackageRevisionFn(f func() v1.PackageRevision) ReconcilerOption {
+	return func(r *Reconciler) {
+		r.newPackageRevision = f
+	}
+}
+
+// WithNewPackageRevisionListFn determines the type of package being reconciled.
+func WithNewPackageRevisionListFn(f func() v1.PackageRevisionList) ReconcilerOption {
+	return func(r *Reconciler) {
+		r.newPackageRevisionList = f
+	}
+}
+
+// NewReconciler returns a Reconciler of PackageRevisions.
 func NewReconciler(mgr manager.Manager, opts ...ReconcilerOption) *Reconciler {
 	r := &Reconciler{
 		// TODO(negz): Is Updating appropriate here? Probably.
@@ -186,16 +261,20 @@ type rbac struct {
 	ClusterRoleRenderer
 }
 
-// A Reconciler reconciles ProviderRevisions.
+// A Reconciler reconciles PackageRevisions.
 type Reconciler struct {
 	client resource.ClientApplicator
 	rbac   rbac
 
 	log    logging.Logger
 	record event.Recorder
+
+	newPackage             func() v1.Package
+	newPackageRevision     func() v1.PackageRevision
+	newPackageRevisionList func() v1.PackageRevisionList
 }
 
-// Reconcile a ProviderRevision by creating a series of opinionated ClusterRoles
+// Reconcile a PackageRevision by creating a series of opinionated ClusterRoles
 // that may be bound to allow access to the resources it defines.
 func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) { //nolint:gocyclo
 	log := r.log.WithValues("request", req)
@@ -204,7 +283,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	pr := &v1.ProviderRevision{}
+	pr := r.newPackageRevision()
+
+	//pr := &v1.ProviderRevision{}
 	if err := r.client.Get(ctx, req.NamespacedName, pr); err != nil {
 		// In case object is not found, most likely the object was deleted and
 		// then disappeared while the event was in the processing queue. We
@@ -232,7 +313,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		return reconcile.Result{RequeueAfter: shortWait}, nil
 	}
 
-	// Filter down to the CRDs that are owned by this ProviderRevision - i.e.
+	// Filter down to the CRDs that are owned by this PackageRevision - i.e.
 	// those that it may become the active revision for.
 	crds := make([]extv1.CustomResourceDefinition, 0)
 	for _, crd := range l.Items {
@@ -243,7 +324,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		}
 	}
 
-	rejected, err := r.rbac.ValidatePermissionRequests(ctx, pr.Status.PermissionRequests...)
+	rejected, err := r.rbac.ValidatePermissionRequests(ctx, pr.GetPermissionsRequests()...)
 	if err != nil {
 		log.Debug(errValidatePermissions, "error", err)
 		r.record.Event(pr, event.Warning(reasonApplyRoles, errors.Wrap(err, errValidatePermissions)))
@@ -265,7 +346,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		return reconcile.Result{Requeue: false}, nil
 	}
 
-	for _, cr := range r.rbac.RenderClusterRoles(pr, crds) {
+	for _, cr := range r.rbac.RenderClusterRoles(&pr, crds) {
 		cr := cr // Pin range variable so we can take its address.
 		log = log.WithValues("role-name", cr.GetName())
 		err := r.client.Apply(ctx, &cr, resource.MustBeControllableBy(pr.GetUID()), resource.AllowUpdateIf(ClusterRolesDiffer))
@@ -282,7 +363,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	}
 
 	// TODO: Add a condition that indicates the RBAC manager is
-	// managing cluster roles for this ProviderRevision?
+	// managing cluster roles for this PackageRevision?
 	r.record.Event(pr, event.Normal(reasonApplyRoles, "Applied RBAC ClusterRoles"))
 
 	// There's no need to requeue explicitly - we're watching all PRs.

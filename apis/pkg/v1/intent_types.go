@@ -21,9 +21,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ProviderSpec specifies details about a request to install a provider to
-// the network device driver.
-type ProviderSpec struct {
+// IntentSpec specifies details about a request to install a Intent to
+// ndd.
+type IntentSpec struct {
 	PackageSpec `json:",inline"`
 
 	// ControllerConfigRef references a ControllerConfig resource that will be
@@ -32,8 +32,8 @@ type ProviderSpec struct {
 	ControllerConfigReference *nddv1.Reference `json:"controllerConfigRef,omitempty"`
 }
 
-// ProviderStatus defines the observed state of Provider
-type ProviderStatus struct {
+// IntentStatus defines the observed state of Intent
+type IntentStatus struct {
 	nddv1.ConditionedStatus `json:",inline"`
 	PackageStatus           `json:",inline"`
 }
@@ -42,39 +42,39 @@ type ProviderStatus struct {
 // +genclient
 // +genclient:nonNamespaced
 
-// Provider is the CRD type for a request to add a provider to Network Device Driver..
+// Intent is the CRD type for a request to add a Intent to Network Device Driver..
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="INSTALLED",type="string",JSONPath=".status.conditions[?(@.kind=='PackageInstalled')].status"
 // +kubebuilder:printcolumn:name="HEALTHY",type="string",JSONPath=".status.conditions[?(@.kind=='PackageHealthy')].status"
 // +kubebuilder:printcolumn:name="PACKAGE",type="string",JSONPath=".spec.package"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:resource:scope=Cluster,categories={ndd,pkg},shortName=pvd
-type Provider struct {
+// +kubebuilder:resource:scope=Cluster,categories={ndd,pkg},shortName=int
+type Intent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ProviderSpec   `json:"spec,omitempty"`
-	Status ProviderStatus `json:"status,omitempty"`
+	Spec   IntentSpec   `json:"spec,omitempty"`
+	Status IntentStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-type ProviderList struct {
+type IntentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Provider `json:"items"`
+	Items           []Intent `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Provider{}, &ProviderList{})
+	SchemeBuilder.Register(&Intent{}, &IntentList{})
 }
 
 // +kubebuilder:object:root=true
 // +genclient
 // +genclient:nonNamespaced
 
-// A ProviderRevision that has been added to Network device Driver.
+// A IntentRevision that has been added to Network device Driver.
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="HEALTHY",type="string",JSONPath=".status.conditions[?(@.kind=='PackageHealthy')].status"
@@ -84,8 +84,8 @@ func init() {
 // +kubebuilder:printcolumn:name="DEP-FOUND",type="string",JSONPath=".status.foundDependencies"
 // +kubebuilder:printcolumn:name="DEP-INSTALLED",type="string",JSONPath=".status.installedDependencies"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:resource:scope=Cluster,categories={ndd,pkg},shortName=prov
-type ProviderRevision struct {
+// +kubebuilder:resource:scope=Cluster,categories={ndd,pkg},shortName=pvr
+type IntentRevision struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -95,13 +95,13 @@ type ProviderRevision struct {
 
 //+kubebuilder:object:root=true
 
-// ProviderRevisionList contains a list of ProviderRevision.
-type ProviderRevisionList struct {
+// IntentRevisionList contains a list of IntentRevision.
+type IntentRevisionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ProviderRevision `json:"items"`
+	Items           []IntentRevision `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&ProviderRevision{}, &ProviderRevisionList{})
+	SchemeBuilder.Register(&IntentRevision{}, &IntentRevisionList{})
 }

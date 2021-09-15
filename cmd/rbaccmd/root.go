@@ -85,6 +85,7 @@ func init() {
 	i := initializer.New(cl,
 		initializer.NewCRDWaiter([]string{
 			fmt.Sprintf("%s.%s", "providerrevisions", pkgv1.Group),
+			fmt.Sprintf("%s.%s", "intentrevisions", pkgv1.Group),
 		}, time.Minute, time.Second, logging.NewLogrLogger(zlog.WithName("nddrbacinit"))),
 	)
 	if err := i.Init(context.TODO()); err != nil {

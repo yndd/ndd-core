@@ -23,6 +23,7 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/resource"
 	"github.com/yndd/ndd-runtime/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -49,6 +50,7 @@ func RefNames(refs []corev1.LocalObjectReference) []string {
 }
 
 var _ Package = &Provider{}
+var _ Package = &Intent{}
 
 // +k8s:deepcopy-gen=false
 type Package interface {
@@ -196,7 +198,118 @@ func (p *Provider) SetCurrentIdentifier(s string) {
 	p.Status.CurrentIdentifier = s
 }
 
+// GetCondition of this Intent.
+func (p *Intent) GetCondition(ct nddv1.ConditionKind) nddv1.Condition {
+	return p.Status.GetCondition(ct)
+}
+
+// SetConditions of this Intent.
+func (p *Intent) SetConditions(c ...nddv1.Condition) {
+	p.Status.SetConditions(c...)
+}
+
+// GetAutoPilot of this Intent.
+func (p *Intent) GetAutoPilot() bool {
+	return *p.Spec.AutoPilot
+}
+
+// SetAutoPilot of this Intent.
+func (p *Intent) SetAutoPilot(b bool) {
+	p.Spec.AutoPilot = utils.BoolPtr(b)
+}
+
+// GetSource of this Intent.
+func (p *Intent) GetSource() string {
+	return p.Spec.Package
+}
+
+// SetSource of this Intent.
+func (p *Intent) SetSource(s string) {
+	p.Spec.Package = s
+}
+
+// GetActivationPolicy of this Intent.
+func (p *Intent) GetActivationPolicy() *RevisionActivationPolicy {
+	return p.Spec.RevisionActivationPolicy
+}
+
+// SetActivationPolicy of this Intent.
+func (p *Intent) SetActivationPolicy(a *RevisionActivationPolicy) {
+	p.Spec.RevisionActivationPolicy = a
+}
+
+// GetPackagePullSecrets of this Intent.
+func (p *Intent) GetPackagePullSecrets() []corev1.LocalObjectReference {
+	return p.Spec.PackagePullSecrets
+}
+
+// SetPackagePullSecrets of this Intent.
+func (p *Intent) SetPackagePullSecrets(s []corev1.LocalObjectReference) {
+	p.Spec.PackagePullSecrets = s
+}
+
+// GetPackagePullPolicy of this Intent.
+func (p *Intent) GetPackagePullPolicy() *corev1.PullPolicy {
+	return p.Spec.PackagePullPolicy
+}
+
+// SetPackagePullPolicy of this Intent.
+func (p *Intent) SetPackagePullPolicy(i *corev1.PullPolicy) {
+	p.Spec.PackagePullPolicy = i
+}
+
+// GetRevisionHistoryLimit of this Intent.
+func (p *Intent) GetRevisionHistoryLimit() *int64 {
+	return p.Spec.RevisionHistoryLimit
+}
+
+// SetRevisionHistoryLimit of this Intent.
+func (p *Intent) SetRevisionHistoryLimit(l *int64) {
+	p.Spec.RevisionHistoryLimit = l
+}
+
+// GetControllerConfigRef of this Intent.
+func (p *Intent) GetControllerConfigRef() *nddv1.Reference {
+	return p.Spec.ControllerConfigReference
+}
+
+// SetControllerConfigRef of this Intent.
+func (p *Intent) SetControllerConfigRef(r *nddv1.Reference) {
+	p.Spec.ControllerConfigReference = r
+}
+
+// GetCurrentRevision of this Intent.
+func (p *Intent) GetCurrentRevision() string {
+	return p.Status.CurrentRevision
+}
+
+// SetCurrentRevision of this Intent.
+func (p *Intent) SetCurrentRevision(s string) {
+	p.Status.CurrentRevision = s
+}
+
+// GetSkipDependencyResolution of this Intent.
+func (p *Intent) GetSkipDependencyResolution() *bool {
+	return p.Spec.SkipDependencyResolution
+}
+
+// SetSkipDependencyResolution of this Intent.
+func (p *Intent) SetSkipDependencyResolution(b *bool) {
+	p.Spec.SkipDependencyResolution = b
+}
+
+// GetCurrentIdentifier of this Intent.
+func (p *Intent) GetCurrentIdentifier() string {
+	return p.Status.CurrentIdentifier
+}
+
+// SetCurrentIdentifier of this Intent.
+func (p *Intent) SetCurrentIdentifier(s string) {
+	p.Status.CurrentIdentifier = s
+}
+
 var _ PackageRevision = &ProviderRevision{}
+var _ PackageRevision = &IntentRevision{}
 
 // PackageRevision is the interface satisfied by package revision types.
 // +k8s:deepcopy-gen=false
@@ -236,6 +349,25 @@ type PackageRevision interface {
 
 	GetDependencyStatus() (found, installed, invalid int64)
 	SetDependencyStatus(found, installed, invalid int64)
+
+	GetPermissionsRequests() []rbacv1.PolicyRule
+
+	GetRevName() string
+
+	GetKind() string
+}
+
+func (p *ProviderRevision) GetKind() string {
+	return p.Kind
+}
+
+func (p *ProviderRevision) GetRevName() string {
+	return p.GetName()
+}
+
+// GetPermissions of this ProviderRevision.
+func (p *ProviderRevision) GetPermissionsRequests() []rbacv1.PolicyRule {
+	return p.Status.PermissionRequests
 }
 
 // GetCondition of this ProviderRevision.
@@ -360,7 +492,143 @@ func (p *ProviderRevision) SetSkipDependencyResolution(b *bool) {
 	p.Spec.SkipDependencyResolution = b
 }
 
+func (p *IntentRevision) GetKind() string {
+	return p.Kind
+}
+
+func (p *IntentRevision) GetRevName() string {
+	return p.GetName()
+}
+
+// GetPermissions of this ProviderRevision.
+func (p *IntentRevision) GetPermissionsRequests() []rbacv1.PolicyRule {
+	return p.Status.PermissionRequests
+}
+
+// GetCondition of this IntentRevision.
+func (p *IntentRevision) GetCondition(ct nddv1.ConditionKind) nddv1.Condition {
+	return p.Status.GetCondition(ct)
+}
+
+// SetConditions of this IntentRevision.
+func (p *IntentRevision) SetConditions(c ...nddv1.Condition) {
+	p.Status.SetConditions(c...)
+}
+
+// GetObjects of this IntentRevision.
+func (p *IntentRevision) GetObjects() []nddv1.TypedReference {
+	return p.Status.ObjectRefs
+}
+
+// SetObjects of this IntentRevision.
+func (p *IntentRevision) SetObjects(c []nddv1.TypedReference) {
+	p.Status.ObjectRefs = c
+}
+
+// GetControllerReference of this IntentRevision.
+func (p *IntentRevision) GetControllerReference() nddv1.Reference {
+	return p.Status.ControllerRef
+}
+
+// SetControllerReference of this IntentRevision.
+func (p *IntentRevision) SetControllerReference(c nddv1.Reference) {
+	p.Status.ControllerRef = c
+}
+
+// GetSource of this IntentRevision.
+func (p *IntentRevision) GetSource() string {
+	return p.Spec.PackageImage
+}
+
+// SetSource of this IntentRevision.
+func (p *IntentRevision) SetSource(s string) {
+	p.Spec.PackageImage = s
+}
+
+// GetPackagePullSecrets of this IntentRevision.
+func (p *IntentRevision) GetPackagePullSecrets() []corev1.LocalObjectReference {
+	return p.Spec.PackagePullSecrets
+}
+
+// SetPackagePullSecrets of this IntentRevision.
+func (p *IntentRevision) SetPackagePullSecrets(s []corev1.LocalObjectReference) {
+	p.Spec.PackagePullSecrets = s
+}
+
+// GetPackagePullPolicy of this IntentRevision.
+func (p *IntentRevision) GetPackagePullPolicy() *corev1.PullPolicy {
+	return p.Spec.PackagePullPolicy
+}
+
+// SetPackagePullPolicy of this IntentRevision.
+func (p *IntentRevision) SetPackagePullPolicy(i *corev1.PullPolicy) {
+	p.Spec.PackagePullPolicy = i
+}
+
+// GetDesiredState of this IntentRevision.
+func (p *IntentRevision) GetDesiredState() PackageRevisionDesiredState {
+	return p.Spec.DesiredState
+}
+
+// SetDesiredState of this IntentRevision.
+func (p *IntentRevision) SetDesiredState(s PackageRevisionDesiredState) {
+	p.Spec.DesiredState = s
+}
+
+// GetRevision of this IntentRevision.
+func (p *IntentRevision) GetRevision() int64 {
+	return p.Spec.Revision
+}
+
+// SetRevision of this IntentRevision.
+func (p *IntentRevision) SetRevision(r int64) {
+	p.Spec.Revision = r
+}
+
+// GetAutoPilot of this IntentRevision.
+func (p *IntentRevision) GetAutoPilot() bool {
+	return *p.Spec.AutoPilot
+}
+
+// SetAutoPilot of this IntentRevision.
+func (p *IntentRevision) SetAutoPilot(b bool) {
+	p.Spec.AutoPilot = utils.BoolPtr(b)
+}
+
+// GetDependencyStatus of this IntentRevision.
+func (p *IntentRevision) GetDependencyStatus() (found, installed, invalid int64) {
+	return p.Status.FoundDependencies, p.Status.InstalledDependencies, p.Status.InvalidDependencies
+}
+
+// SetDependencyStatus of this IntentRevision.
+func (p *IntentRevision) SetDependencyStatus(found, installed, invalid int64) {
+	p.Status.FoundDependencies = found
+	p.Status.InstalledDependencies = installed
+	p.Status.InvalidDependencies = invalid
+}
+
+// GetControllerConfigRef of this IntentRevision.
+func (p *IntentRevision) GetControllerConfigRef() *nddv1.Reference {
+	return p.Spec.ControllerConfigReference
+}
+
+// SetControllerConfigRef of this IntentREvsion.
+func (p *IntentRevision) SetControllerConfigRef(r *nddv1.Reference) {
+	p.Spec.ControllerConfigReference = r
+}
+
+// GetSkipDependencyResolution of this IntentRevision.
+func (p *IntentRevision) GetSkipDependencyResolution() *bool {
+	return p.Spec.SkipDependencyResolution
+}
+
+// SetSkipDependencyResolution of this IntentRevision.
+func (p *IntentRevision) SetSkipDependencyResolution(b *bool) {
+	p.Spec.SkipDependencyResolution = b
+}
+
 var _ PackageRevisionList = &ProviderRevisionList{}
+var _ PackageRevisionList = &IntentRevisionList{}
 
 // PackageRevisionList is the interface satisfied by package revision list
 // types.
@@ -378,6 +646,16 @@ type PackageRevisionList interface {
 
 // GetRevisions of this ProviderRevisionList.
 func (p *ProviderRevisionList) GetRevisions() []PackageRevision {
+	prs := make([]PackageRevision, len(p.Items))
+	for i, r := range p.Items {
+		r := r // Pin range variable so we can take its address.
+		prs[i] = &r
+	}
+	return prs
+}
+
+// GetRevisions of this IntentRevisionList.
+func (p *IntentRevisionList) GetRevisions() []PackageRevision {
 	prs := make([]PackageRevision, len(p.Items))
 	for i, r := range p.Items {
 		r := r // Pin range variable so we can take its address.

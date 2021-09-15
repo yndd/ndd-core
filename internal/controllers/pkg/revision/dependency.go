@@ -69,7 +69,7 @@ func NewPackageDependencyManager(c client.Client, nd dag.NewDAGFn, t pkgmetav1.P
 
 // Resolve resolves package dependencies.
 func (m *PackageDependencyManager) Resolve(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision) (found, installed, invalid int, err error) { // nolint:gocyclo
-	pack, ok := nddpkg.TryConvertToPkg(pkg, &pkgmetav1.Provider{})
+	pack, ok := nddpkg.TryConvertToPkg(pkg, &pkgmetav1.Provider{}, &pkgmetav1.Intent{})
 	if !ok {
 		return found, installed, invalid, errors.New(errNotMeta)
 	}

@@ -41,8 +41,8 @@ var (
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
 	Use:          "push",
-	Short:        "push a ndd provider",
-	Long:         "push a ndd provider for usage with the network device driver in kubernetes",
+	Short:        "push a ndd package",
+	Long:         "push a ndd package for usage with the network device driver in kubernetes",
 	SilenceUsage: true,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
@@ -79,6 +79,6 @@ var pushCmd = &cobra.Command{
 }
 
 func init() {
-	providerCmd.AddCommand(pushCmd)
+	packageCmd.AddCommand(pushCmd)
 	pushCmd.Flags().StringVarP(&nddPackageName, "NddPackageName", "p", "", "Path to package. If not specified and only one package exists in current directory it will be used.")
 }

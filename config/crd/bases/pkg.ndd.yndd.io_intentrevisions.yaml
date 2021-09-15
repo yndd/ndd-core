@@ -6,19 +6,19 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: providerrevisions.pkg.ndd.yndd.io
+  name: intentrevisions.pkg.ndd.yndd.io
 spec:
   group: pkg.ndd.yndd.io
   names:
     categories:
     - ndd
     - pkg
-    kind: ProviderRevision
-    listKind: ProviderRevisionList
-    plural: providerrevisions
+    kind: IntentRevision
+    listKind: IntentRevisionList
+    plural: intentrevisions
     shortNames:
-    - prov
-    singular: providerrevision
+    - pvr
+    singular: intentrevision
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -46,7 +46,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: A ProviderRevision that has been added to Network device Driver.
+        description: A IntentRevision that has been added to Network device Driver.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

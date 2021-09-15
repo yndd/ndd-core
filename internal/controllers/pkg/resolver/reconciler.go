@@ -132,6 +132,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, namespace string) error {
 		Named(name).
 		For(&v1.Lock{}).
 		Owns(&v1.ProviderRevision{}).
+		Owns(&v1.IntentRevision{}).
 		Complete(r)
 }
 
@@ -256,6 +257,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 
 	var pack v1.Package
 	switch dep.Type {
+	case pkgmetav1.IntentPackageType:
+		pack = &v1.Intent{}
 	case pkgmetav1.ProviderPackageType:
 		pack = &v1.Provider{}
 	default:

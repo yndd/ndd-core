@@ -20,7 +20,6 @@ import (
 	nddv1 "github.com/yndd/ndd-runtime/apis/common/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PackageRevisionDesiredState is the desired state of the package revision.
@@ -100,40 +99,4 @@ type PackageRevisionStatus struct {
 	// controller needs these permissions to run. The RBAC manager is
 	// responsible for granting them.
 	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
-}
-
-// +kubebuilder:object:root=true
-// +genclient
-// +genclient:nonNamespaced
-
-// A ProviderRevision that has been added to Network device Driver.
-// +kubebuilder:subresource:status
-// +kubebuilder:storageversion
-// +kubebuilder:printcolumn:name="HEALTHY",type="string",JSONPath=".status.conditions[?(@.kind=='PackageHealthy')].status"
-// +kubebuilder:printcolumn:name="REVISION",type="string",JSONPath=".spec.revision"
-// +kubebuilder:printcolumn:name="PKGIMAGE",type="string",JSONPath=".spec.packageImage"
-// +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".spec.desiredState"
-// +kubebuilder:printcolumn:name="DEP-FOUND",type="string",JSONPath=".status.foundDependencies"
-// +kubebuilder:printcolumn:name="DEP-INSTALLED",type="string",JSONPath=".status.installedDependencies"
-// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:resource:scope=Cluster,categories={ndd,pkg},shortName=pvr
-type ProviderRevision struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   PackageRevisionSpec   `json:"spec,omitempty"`
-	Status PackageRevisionStatus `json:"status,omitempty"`
-}
-
-//+kubebuilder:object:root=true
-
-// ProviderRevisionList contains a list of ProviderRevision.
-type ProviderRevisionList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ProviderRevision `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&ProviderRevision{}, &ProviderRevisionList{})
 }

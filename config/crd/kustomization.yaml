@@ -4,12 +4,15 @@
 resources:
 - bases/pkg.ndd.yndd.io_providers.yaml
 - bases/pkg.ndd.yndd.io_providerrevisions.yaml
+- bases/pkg.ndd.yndd.io_intents.yaml
+- bases/pkg.ndd.yndd.io_intentrevisions.yaml
 - bases/pkg.ndd.yndd.io_controllerconfigs.yaml
 - bases/pkg.ndd.yndd.io_locks.yaml
 - bases/dvr.ndd.yndd.io_networknodes.yaml
 - bases/dvr.ndd.yndd.io_networknodeusages.yaml
 - bases/dvr.ndd.yndd.io_devicedrivers.yaml
 - bases/meta.pkg.ndd.yndd.io_providers.yaml
+- bases/meta.pkg.ndd.yndd.io_intents.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 #patchesStrategicMerge:

@@ -40,6 +40,16 @@ const (
 	errApplyProviderDeployment       = "cannot apply provider package deployment"
 	errApplyProviderSA               = "cannot apply provider package service account"
 	errUnavailableProviderDeployment = "provider package deployment is unavailable"
+
+	errNotIntent                   = "not a intent package"
+	errNotIntentRevision           = "not a intent revision"
+	errDeleteIntentDeployment      = "cannot delete intent package deployment"
+	errDeleteIntentSA              = "cannot delete intent package service account"
+	errDeleteIntentService         = "cannot delete intent package service"
+	errApplyIntentDeployment       = "cannot apply intent package deployment"
+	errApplyIntentSA               = "cannot apply intent package service account"
+	errApplyIntentService          = "cannot apply intent package service"
+	errUnavailableIntentDeployment = "intent package deployment is unavailable"
 )
 
 // A Hooks performs operations before and after a revision establishes objects.
@@ -51,7 +61,111 @@ type Hooks interface {
 	Post(context.Context, runtime.Object, v1.PackageRevision) error
 }
 
-// ProviderHooks performs operations for a provider package that requires a
+// IntentHooks performs operations for a Intent package that requires a
+// controller before and after the revision establishes objects.
+type IntentHooks struct {
+	client    resource.ClientApplicator
+	namespace string
+}
+
+// NewIntentHooks creates a new IntentHooks.
+func NewIntentHooks(client resource.ClientApplicator, namespace string) *IntentHooks {
+	return &IntentHooks{
+		client:    client,
+		namespace: namespace,
+	}
+}
+
+// Pre cleans up a packaged controller and service account if the revision is
+// inactive.
+func (h *IntentHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision) error {
+	po, _ := nddpkg.TryConvert(pkg, &pkgmetav1.Intent{})
+	pkgIntent, ok := po.(*pkgmetav1.Intent)
+	if !ok {
+		return errors.New(errNotIntent)
+	}
+
+	// TBD updates
+	_, ok = pr.(*v1.IntentRevision)
+	if !ok {
+		return errors.New(errNotIntentRevision)
+	}
+
+	//provRev.Status.PermissionRequests = pkgProvider.Spec.Controller.PermissionRequests
+
+	// Do not clean up SA and controller if revision is not inactive.
+	if pr.GetDesiredState() != v1.PackageRevisionInactive {
+		return nil
+	}
+	cc, err := h.getControllerConfig(ctx, pr)
+	if err != nil {
+		return errors.Wrap(err, errControllerConfig)
+	}
+	svc := buildIntentService(pkgIntent, pr, h.namespace)
+	if err := h.client.Delete(ctx, svc); resource.IgnoreNotFound(err) != nil {
+		return errors.Wrap(err, errDeleteIntentService)
+	}
+	s, d := buildIntentDeployment(pkgIntent, pr, cc, h.namespace)
+	if err := h.client.Delete(ctx, d); resource.IgnoreNotFound(err) != nil {
+		return errors.Wrap(err, errDeleteIntentDeployment)
+	}
+	if err := h.client.Delete(ctx, s); resource.IgnoreNotFound(err) != nil {
+		return errors.Wrap(err, errDeleteIntentSA)
+	}
+	return nil
+}
+
+// Post creates a packaged provider controller and service account if the
+// revision is active.
+func (h *IntentHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision) error {
+	po, _ := nddpkg.TryConvert(pkg, &pkgmetav1.Intent{})
+	pkgIntent, ok := po.(*pkgmetav1.Intent)
+	if !ok {
+		return errors.New("not a intent package")
+	}
+	if pr.GetDesiredState() != v1.PackageRevisionActive {
+		return nil
+	}
+	cc, err := h.getControllerConfig(ctx, pr)
+	if err != nil {
+		return errors.Wrap(err, errControllerConfig)
+	}
+	svc := buildIntentService(pkgIntent, pr, h.namespace)
+	if err := h.client.Apply(ctx, svc); err != nil {
+		return errors.Wrap(err, errDeleteIntentService)
+	}
+	s, d := buildIntentDeployment(pkgIntent, pr, cc, h.namespace)
+	if err := h.client.Apply(ctx, s); err != nil {
+		return errors.Wrap(err, errApplyProviderSA)
+	}
+	if err := h.client.Apply(ctx, d); err != nil {
+		return errors.Wrap(err, errApplyProviderDeployment)
+	}
+	pr.SetControllerReference(nddv1.Reference{Name: d.GetName()})
+
+	for _, c := range d.Status.Conditions {
+		if c.Type == appsv1.DeploymentAvailable {
+			if c.Status == corev1.ConditionTrue {
+				return nil
+			}
+			return errors.Errorf("%s: %s", errUnavailableProviderDeployment, c.Message)
+		}
+	}
+	return nil
+}
+
+func (h *IntentHooks) getControllerConfig(ctx context.Context, pr v1.PackageRevision) (*v1.ControllerConfig, error) {
+	var cc *v1.ControllerConfig
+	if pr.GetControllerConfigRef() != nil {
+		cc = &v1.ControllerConfig{}
+		if err := h.client.Get(ctx, types.NamespacedName{Name: pr.GetControllerConfigRef().Name}, cc); err != nil {
+			return nil, errors.Wrap(err, errControllerConfig)
+		}
+	}
+	return cc, nil
+}
+
+// ProviderHooks performs operations for a Provider package that requires a
 // controller before and after the revision establishes objects.
 type ProviderHooks struct {
 	client    resource.ClientApplicator

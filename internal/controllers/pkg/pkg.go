@@ -30,6 +30,7 @@ import (
 func Setup(mgr ctrl.Manager, l logging.Logger, c nddpkg.Cache, namespace string) error {
 	for _, setup := range []func(ctrl.Manager, logging.Logger, string) error{
 		manager.SetupProvider,
+		manager.SetupIntent,
 		resolver.Setup,
 	} {
 		if err := setup(mgr, l, namespace); err != nil {
@@ -38,6 +39,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, c nddpkg.Cache, namespace string)
 	}
 	for _, setup := range []func(ctrl.Manager, logging.Logger, nddpkg.Cache, string) error{
 		revision.SetupProviderRevision,
+		revision.SetupIntentRevision,
 	} {
 		if err := setup(mgr, l, c, namespace); err != nil {
 			return err

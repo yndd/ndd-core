@@ -50,3 +50,11 @@ var (
 	ProviderKindAPIVersion   = ProviderKind + "." + GroupVersion.String()
 	ProviderGroupVersionKind = GroupVersion.WithKind(ProviderKind)
 )
+
+// Intent type metadata.
+var (
+	IntentKind             = reflect.TypeOf(Intent{}).Name()
+	IntentGroupKind        = schema.GroupKind{Group: Group, Kind: IntentKind}.String()
+	IntentKindAPIVersion   = IntentKind + "." + GroupVersion.String()
+	IntentGroupVersionKind = GroupVersion.WithKind(IntentKind)
+)

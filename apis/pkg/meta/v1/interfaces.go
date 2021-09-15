@@ -19,6 +19,7 @@ package v1
 import "github.com/yndd/ndd-core/internal/dag"
 
 var _ Pkg = &Provider{}
+var _ Pkg = &Intent{}
 
 // Pkg is a description of a Ndd package.
 // +k8s:deepcopy-gen=false
@@ -35,6 +36,17 @@ func (c *Provider) GetNddConstraints() *NddConstraints {
 
 // GetDependencies gets the Provider package's dependencies.
 func (c *Provider) GetDependencies() []Dependency {
+	return c.Spec.MetaSpec.DependsOn
+}
+
+// GetNddConstraints gets the Intent package's ndd version
+// constraints.
+func (c *Intent) GetNddConstraints() *NddConstraints {
+	return c.Spec.MetaSpec.Ndd
+}
+
+// GetDependencies gets the Intent package's dependencies.
+func (c *Intent) GetDependencies() []Dependency {
 	return c.Spec.MetaSpec.DependsOn
 }
 

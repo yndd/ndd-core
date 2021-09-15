@@ -28,10 +28,11 @@ import (
 )
 
 const (
-	namePrefix       = "ndd:provider:"
-	nameSuffixSystem = ":system"
+	nameProviderPrefix = "ndd:provider:"
+	nameIntentPrefix   = "nddo:intent:"
+	nameSuffixSystem   = ":system"
 
-	valTrue = "true"
+	//valTrue = "true"
 
 	suffixStatus = "/status"
 
@@ -83,14 +84,20 @@ var rulesSystemExtra = []rbacv1.PolicyRule{
 	},
 }
 
-// SystemClusterRoleName returns the name of the 'system' cluster role - i.e.
+// SystemClusterProviderRoleName returns the name of the 'system' cluster role - i.e.
 // the role that a provider's ServiceAccount should be bound to.
-func SystemClusterRoleName(revisionName string) string {
-	return namePrefix + revisionName + nameSuffixSystem
+func SystemClusterProviderRoleName(revisionName string) string {
+	return nameProviderPrefix + revisionName + nameSuffixSystem
 }
 
-// RenderClusterRoles returns ClusterRoles for the supplied ProviderRevision.
-func RenderClusterRoles(pr *v1.ProviderRevision, crds []extv1.CustomResourceDefinition) []rbacv1.ClusterRole {
+// SystemClusterIntentRoleName returns the name of the 'system' cluster role - i.e.
+// the role that a intent's ServiceAccount should be bound to.
+func SystemClusterIntentRoleName(revisionName string) string {
+	return nameIntentPrefix + revisionName + nameSuffixSystem
+}
+
+// RenderClusterRoles returns ClusterRoles for the supplied PackageRevision.
+func RenderClusterRoles(pr *v1.PackageRevision, crds []extv1.CustomResourceDefinition) []rbacv1.ClusterRole {
 	// Our list of CRDs has no guaranteed order, so we sort them in order to
 	// ensure we don't reorder our RBAC rules on each update.
 	sort.Slice(crds, func(i, j int) bool { return crds[i].GetName() < crds[j].GetName() })
@@ -117,15 +124,35 @@ func RenderClusterRoles(pr *v1.ProviderRevision, crds []extv1.CustomResourceDefi
 	}
 
 	// The 'system' RBAC role does not aggregate; it is intended to be bound
-	// directly to the service account that the provider runs as.
-	system := &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{Name: SystemClusterRoleName(pr.GetName())},
-		Rules:      append(append(withVerbs(rules, verbsSystem), rulesSystemExtra...), pr.Status.PermissionRequests...),
+	// directly to the service account that the provider/intent runs as.
+	var system *rbacv1.ClusterRole
+	switch (*pr).GetKind() {
+	case v1.IntentRevisionKind:
+		// Intent revision
+		system = &rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{Name: SystemClusterIntentRoleName((*pr).GetRevName())},
+			Rules:      append(append(withVerbs(rules, verbsSystem), rulesSystemExtra...), (*pr).GetPermissionsRequests()...),
+		}
+	default:
+		// Provider revision
+		system = &rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{Name: SystemClusterProviderRoleName((*pr).GetRevName())},
+			Rules:      append(append(withVerbs(rules, verbsSystem), rulesSystemExtra...), (*pr).GetPermissionsRequests()...),
+		}
 	}
 
 	roles := []rbacv1.ClusterRole{*system}
 	for i := range roles {
-		ref := meta.AsController(meta.TypedReferenceTo(pr, v1.ProviderRevisionGroupVersionKind))
+		var ref metav1.OwnerReference
+
+		switch (*pr).GetKind() {
+		case v1.IntentRevisionKind:
+			// Intent revision
+			ref = meta.AsController(meta.TypedReferenceTo(*pr, v1.IntentRevisionGroupVersionKind))
+		default:
+			// Provider revision
+			ref = meta.AsController(meta.TypedReferenceTo(*pr, v1.ProviderRevisionGroupVersionKind))
+		}
 		roles[i].SetOwnerReferences([]metav1.OwnerReference{ref})
 	}
 	return roles
