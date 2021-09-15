@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	GnmiServerPort       = "9999"
+	GnmiServerPort       = 9999
 	PrefixService        = "nddo-svc"
 	Namespace            = "ndd-system"
 	NamespaceLocalK8sDNS = Namespace + "." + "svc.cluster.local:"
