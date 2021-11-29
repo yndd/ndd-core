@@ -53,7 +53,8 @@ const (
 	errApplyBinding = "cannot apply ClusterRoleBinding"
 
 	// items
-	kindClusterRole = "ClusterRole"
+	kindClusterRole    = "ClusterRole"
+	metricsClusterRole = "ndd-proxy-role"
 
 	// Event reasons.
 	reasonBind event.Reason = "BindClusterRole"
@@ -233,33 +234,40 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		}
 	}
 
-	var n string
+	var cbrName string
+	var cbrMetricName string
+	var ref metav1.OwnerReference
 	switch pr.GetKind() {
 	case v1.IntentRevisionKind:
 		// Intent Revision
-		n = roles.SystemClusterIntentRoleName(pr.GetName())
+		cbrName = roles.SystemClusterIntentRoleName(pr.GetName())
+		cbrMetricName = roles.SystemClusterIntentMetricRoleName(pr.GetName())
+		ref = meta.AsController(meta.TypedReferenceTo(pr, v1.IntentRevisionGroupVersionKind))
 	default:
 		// Provider Revision
-		n = roles.SystemClusterProviderRoleName(pr.GetName())
+		cbrName = roles.SystemClusterProviderRoleName(pr.GetName())
+		cbrMetricName = roles.SystemClusterProviderMetricRoleName(pr.GetName())
+		ref = meta.AsController(meta.TypedReferenceTo(pr, v1.ProviderRevisionGroupVersionKind))
 	}
 
-	ref := meta.AsController(meta.TypedReferenceTo(pr, v1.ProviderRevisionGroupVersionKind))
+	// cluster role for CRD access
+
 	rb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            n,
+			Name:            cbrName,
 			OwnerReferences: []metav1.OwnerReference{ref},
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
 			Kind:     kindClusterRole,
-			Name:     n,
+			Name:     cbrName,
 		},
 		Subjects: subjects,
 	}
 
 	log = log.WithValues(
-		"binding-name", n,
-		"role-name", n,
+		"binding-name", cbrName,
+		"role-name", cbrName,
 		"subjects", subjects,
 	)
 
@@ -269,7 +277,35 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		return reconcile.Result{RequeueAfter: shortWait}, nil
 	}
 	log.Debug("Applied system ClusterRoleBinding")
-	r.record.Event(pr, event.Normal(reasonBind, "Bound system ClusterRole to provider ServiceAccount(s)"))
+	r.record.Event(pr, event.Normal(reasonBind, "Bound system ClusterRole to ServiceAccount(s)"))
+
+	// cluster role for metrics
+	rb = &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            cbrMetricName,
+			OwnerReferences: []metav1.OwnerReference{ref},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     kindClusterRole,
+			Name:     metricsClusterRole,
+		},
+		Subjects: subjects,
+	}
+
+	log = log.WithValues(
+		"binding-name", cbrName,
+		"role-name", cbrName,
+		"subjects", subjects,
+	)
+
+	if err := r.client.Apply(ctx, rb, resource.MustBeControllableBy(pr.GetUID())); err != nil {
+		log.Debug(errApplyBinding, "error", err)
+		r.record.Event(pr, event.Warning(reasonBind, errors.Wrap(err, errApplyBinding)))
+		return reconcile.Result{RequeueAfter: shortWait}, nil
+	}
+	log.Debug("Applied metrics ClusterRoleBinding")
+	r.record.Event(pr, event.Normal(reasonBind, "Bound metric ClusterRole to ServiceAccount(s)"))
 
 	// There's no need to requeue explicitly - we're watching all PRs.
 	return reconcile.Result{Requeue: false}, nil

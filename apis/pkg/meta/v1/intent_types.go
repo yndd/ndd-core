@@ -22,10 +22,12 @@ import (
 
 const (
 	GnmiServerPort       = 9999
+	MetricServerPort     = 8443
 	PrefixService        = "nddo-svc"
+	PrefixServiceMetric  = "nddo-metrics-svc"
 	Namespace            = "ndd-system"
 	NamespaceLocalK8sDNS = Namespace + "." + "svc.cluster.local:"
-	LabelPkgMeta         = "nddo-intent"
+	LabelPkgMeta         = "app"
 )
 
 // IntentSpec specifies the configuration of a Intent.

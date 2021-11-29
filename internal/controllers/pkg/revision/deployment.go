@@ -17,6 +17,8 @@ limitations under the License.
 package revision
 
 import (
+	"strings"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -208,6 +210,7 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 }
 
 func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string) (*corev1.ServiceAccount, *appsv1.Deployment) { // nolint:interfacer,gocyclo
+	metricLabelName := strings.Join([]string{pkgmetav1.PrefixServiceMetric, strings.Split(intent.GetName(), "-")[len(strings.Split(intent.GetName(), "-"))-1]}, "-")
 	s := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            revision.GetName(),
@@ -253,6 +256,13 @@ func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision
 		"--debug",
 	}
 
+	argsProxy := []string{
+		"--secure-listen-address=0.0.0.0:8443",
+		"--upstream=http://127.0.0.1:9997/",
+		"--logtostderr=true",
+		"--v=10",
+	}
+
 	d := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            revision.GetName(),
@@ -262,13 +272,19 @@ func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"pkg.ndd.yndd.io/revision": revision.GetName()},
+				MatchLabels: map[string]string{
+					"pkg.ndd.yndd.io/revision": revision.GetName(),
+					pkgmetav1.LabelPkgMeta:     metricLabelName,
+				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      intent.GetName(),
 					Namespace: namespace,
-					Labels:    map[string]string{"pkg.ndd.yndd.io/revision": revision.GetName()},
+					Labels: map[string]string{
+						"pkg.ndd.yndd.io/revision": revision.GetName(),
+						pkgmetav1.LabelPkgMeta:     metricLabelName,
+					},
 				},
 				Spec: corev1.PodSpec{
 					SecurityContext: &corev1.PodSecurityContext{
@@ -279,6 +295,17 @@ func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision
 					ServiceAccountName: s.GetName(),
 					ImagePullSecrets:   revision.GetPackagePullSecrets(),
 					Containers: []corev1.Container{
+						{
+							Name:  "kube-rbac-proxy",
+							Image: "gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0",
+							Args:  argsProxy,
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 8443,
+									Name:          "https",
+								},
+							},
+						},
 						{
 							Name:            intent.GetName(),
 							Image:           intent.Spec.Controller.Image,

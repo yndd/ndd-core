@@ -28,9 +28,11 @@ import (
 )
 
 const (
-	nameProviderPrefix = "ndd:provider:"
-	nameIntentPrefix   = "nddo:intent:"
-	nameSuffixSystem   = ":system"
+	nameProviderPrefix       = "ndd:provider:"
+	nameIntentPrefix         = "nddo:intent:"
+	nameProviderMetricPrefix = "ndd:provider:metrics:"
+	nameIntentMetricPrefix   = "nddo:intent:metrics:"
+	nameSuffixSystem         = ":system"
 
 	//valTrue = "true"
 
@@ -94,6 +96,18 @@ func SystemClusterProviderRoleName(revisionName string) string {
 // the role that a intent's ServiceAccount should be bound to.
 func SystemClusterIntentRoleName(revisionName string) string {
 	return nameIntentPrefix + revisionName + nameSuffixSystem
+}
+
+// SystemClusterProviderMetricRoleName returns the name of the 'system' cluster role - i.e.
+// the role that a provider's ServiceAccount should be bound to.
+func SystemClusterProviderMetricRoleName(revisionName string) string {
+	return nameProviderMetricPrefix + revisionName + nameSuffixSystem
+}
+
+// SystemClusterIntentMetricRoleName returns the name of the 'system' cluster role - i.e.
+// the role that a intent's ServiceAccount should be bound to.
+func SystemClusterIntentMetricRoleName(revisionName string) string {
+	return nameIntentMetricPrefix + revisionName + nameSuffixSystem
 }
 
 // RenderClusterRoles returns ClusterRoles for the supplied PackageRevision.
