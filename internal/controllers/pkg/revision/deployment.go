@@ -210,7 +210,8 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 }
 
 func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string) (*corev1.ServiceAccount, *appsv1.Deployment) { // nolint:interfacer,gocyclo
-	metricLabelName := strings.Join([]string{pkgmetav1.PrefixServiceMetric, strings.Split(intent.GetName(), "-")[len(strings.Split(intent.GetName(), "-"))-1]}, "-")
+	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixServiceMetric, strings.Split(intent.GetName(), "-")[len(strings.Split(intent.GetName(), "-"))-1]}, "-")
+	metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
 	s := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            revision.GetName(),

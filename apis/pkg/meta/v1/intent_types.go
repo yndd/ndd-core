@@ -23,8 +23,8 @@ import (
 const (
 	GnmiServerPort       = 9999
 	MetricServerPort     = 8443
-	PrefixService        = "nddo-svc"
-	PrefixServiceMetric  = "nddo-metrics-svc"
+	PrefixGnmiService    = "nddo-gnmi-svc"
+	PrefixMetricService  = "nddo-metrics-svc"
 	Namespace            = "ndd-system"
 	NamespaceLocalK8sDNS = Namespace + "." + "svc.cluster.local:"
 	LabelPkgMeta         = "app"

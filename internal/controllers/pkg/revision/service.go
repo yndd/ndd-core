@@ -29,9 +29,10 @@ import (
 )
 
 func buildIntentService(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
+	gnmiLabelName := strings.Join([]string{pkgmetav1.PrefixGnmiService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      strings.Join([]string{pkgmetav1.PrefixService, strings.Split(intent.GetName(), "-")[len(strings.Split(intent.GetName(), "-"))-1]}, "-"),
+			Name:      gnmiLabelName,
 			Namespace: namespace,
 			Labels: map[string]string{
 				pkgmetav1.LabelPkgMeta: intent.GetName(),
@@ -56,7 +57,7 @@ func buildIntentService(intent *pkgmetav1.Intent, revision v1.PackageRevision, n
 }
 
 func buildIntentMetricService(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	metricLabelName := strings.Join([]string{pkgmetav1.PrefixServiceMetric, strings.Split(intent.GetName(), "-")[len(strings.Split(intent.GetName(), "-"))-1]}, "-")
+	metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      metricLabelName,
