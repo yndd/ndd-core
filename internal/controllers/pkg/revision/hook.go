@@ -134,8 +134,12 @@ func (h *IntentHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Packag
 	if err := h.client.Apply(ctx, svc); err != nil {
 		return errors.Wrap(err, errDeleteIntentService)
 	}
-	svcMetric := buildIntentMetricService(pkgIntent, pr, h.namespace)
-	if err := h.client.Apply(ctx, svcMetric); err != nil {
+	svcMetricHttps := buildIntentMetricServiceHTTPS(pkgIntent, pr, h.namespace)
+	if err := h.client.Apply(ctx, svcMetricHttps); err != nil {
+		return errors.Wrap(err, errDeleteIntentService)
+	}
+	svcMetricHttp := buildIntentMetricServiceHTTP(pkgIntent, pr, h.namespace)
+	if err := h.client.Apply(ctx, svcMetricHttp); err != nil {
 		return errors.Wrap(err, errDeleteIntentService)
 	}
 	s, d := buildIntentDeployment(pkgIntent, pr, cc, h.namespace)

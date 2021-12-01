@@ -21,13 +21,15 @@ import (
 )
 
 const (
-	GnmiServerPort       = 9999
-	MetricServerPort     = 8443
-	PrefixGnmiService    = "nddo-gnmi-svc"
-	PrefixMetricService  = "nddo-metrics-svc"
-	Namespace            = "ndd-system"
-	NamespaceLocalK8sDNS = Namespace + "." + "svc.cluster.local:"
-	LabelPkgMeta         = "app"
+	GnmiServerPort        = 9999
+	MetricServerPortHttp  = 9997
+	MetricServerPortHttps = 8443
+	PrefixGnmiService     = "nddo-gnmi-svc"
+	PrefixMetricService   = "nddo-metrics-svc"
+	Namespace             = "ndd-system"
+	NamespaceLocalK8sDNS  = Namespace + "." + "svc.cluster.local:"
+	LabelPkgMeta          = "app"
+	LabelHttpPkgMeta      = "app-http"
 )
 
 // IntentSpec specifies the configuration of a Intent.

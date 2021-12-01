@@ -17,6 +17,7 @@ limitations under the License.
 package revision
 
 import (
+	"strconv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -29,7 +30,8 @@ import (
 )
 
 func buildIntentService(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	gnmiLabelName := strings.Join([]string{pkgmetav1.PrefixGnmiService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
+	//gnmiLabelName := strings.Join([]string{pkgmetav1.PrefixGnmiService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
+	gnmiLabelName := strings.Join([]string{pkgmetav1.PrefixGnmiService, revision.GetName()}, "-")
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gnmiLabelName,
@@ -37,7 +39,7 @@ func buildIntentService(intent *pkgmetav1.Intent, revision v1.PackageRevision, n
 			Labels: map[string]string{
 				pkgmetav1.LabelPkgMeta: intent.GetName(),
 			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.IntentRevisionGroupVersionKind))},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
@@ -56,16 +58,26 @@ func buildIntentService(intent *pkgmetav1.Intent, revision v1.PackageRevision, n
 	}
 }
 
-func buildIntentMetricService(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
+func buildIntentMetricServiceHTTPS(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
+	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
+	metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "https"}, "-")
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      metricLabelName,
 			Namespace: namespace,
+			/*
+				Annotations: map[string]string{
+					"prometheus.io/path":   "/metrics",
+					"prometheus.io/scheme": "https",
+					"prometheus.io/insecure_skip_verify": "true",
+					"prometheus.io/port":   strconv.Itoa(pkgmetav1.MetricServerPortHttps),
+					"prometheus.io/scrape": "true",
+				},
+			*/
 			Labels: map[string]string{
 				pkgmetav1.LabelPkgMeta: metricLabelName,
 			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.IntentRevisionGroupVersionKind))},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
@@ -75,8 +87,42 @@ func buildIntentMetricService(intent *pkgmetav1.Intent, revision v1.PackageRevis
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "metrics",
-					Port:       pkgmetav1.MetricServerPort,
+					Port:       pkgmetav1.MetricServerPortHttps,
 					TargetPort: intstr.FromString("https"),
+					Protocol:   "TCP",
+				},
+			},
+		},
+	}
+}
+
+func buildIntentMetricServiceHTTP(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
+	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
+	metricLabelNameHttp := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "http"}, "-")
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      metricLabelNameHttp,
+			Namespace: namespace,
+			Annotations: map[string]string{
+				"prometheus.io/path":   "/metrics",
+				"prometheus.io/port":   strconv.Itoa(pkgmetav1.MetricServerPortHttp),
+				"prometheus.io/scrape": "true",
+			},
+			Labels: map[string]string{
+				pkgmetav1.LabelHttpPkgMeta: metricLabelNameHttp,
+			},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.IntentRevisionGroupVersionKind))},
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: map[string]string{
+				pkgmetav1.LabelHttpPkgMeta: metricLabelNameHttp,
+				//"pkg.ndd.yndd.io/revision": revision.GetName(),
+			},
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "metrics",
+					Port:       pkgmetav1.MetricServerPortHttp,
+					TargetPort: intstr.FromInt(pkgmetav1.MetricServerPortHttp),
 					Protocol:   "TCP",
 				},
 			},

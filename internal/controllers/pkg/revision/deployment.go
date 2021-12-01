@@ -211,12 +211,14 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 
 func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string) (*corev1.ServiceAccount, *appsv1.Deployment) { // nolint:interfacer,gocyclo
 	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixServiceMetric, strings.Split(intent.GetName(), "-")[len(strings.Split(intent.GetName(), "-"))-1]}, "-")
-	metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
+	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
+	metricLabelNameHttp := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "http"}, "-")
+	metricLabelNameHttps := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "https"}, "-")
 	s := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            revision.GetName(),
 			Namespace:       namespace,
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.IntentRevisionGroupVersionKind))},
 		},
 	}
 	pullPolicy := corev1.PullIfNotPresent
@@ -268,14 +270,15 @@ func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            revision.GetName(),
 			Namespace:       namespace,
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.IntentRevisionGroupVersionKind))},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"pkg.ndd.yndd.io/revision": revision.GetName(),
-					pkgmetav1.LabelPkgMeta:     metricLabelName,
+					pkgmetav1.LabelPkgMeta:     metricLabelNameHttps,
+					pkgmetav1.LabelHttpPkgMeta: metricLabelNameHttp,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
@@ -284,7 +287,8 @@ func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision
 					Namespace: namespace,
 					Labels: map[string]string{
 						"pkg.ndd.yndd.io/revision": revision.GetName(),
-						pkgmetav1.LabelPkgMeta:     metricLabelName,
+						pkgmetav1.LabelPkgMeta:     metricLabelNameHttps,
+						pkgmetav1.LabelHttpPkgMeta: metricLabelNameHttp,
 					},
 				},
 				Spec: corev1.PodSpec{
