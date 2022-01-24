@@ -18,7 +18,26 @@ package v1
 import (
 	nddv1 "github.com/yndd/ndd-runtime/apis/common/v1"
 	"github.com/yndd/ndd-runtime/pkg/resource"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var _ NnList = &NetworkNodeList{}
+
+// +k8s:deepcopy-gen=false
+type NnList interface {
+	client.ObjectList
+
+	GetNetworkNodes() []Nn
+}
+
+func (x *NetworkNodeList) GetNetworkNodes() []Nn {
+	xs := make([]Nn, len(x.Items))
+	for i, r := range x.Items {
+		r := r // Pin range variable so we can take its address.
+		xs[i] = &r
+	}
+	return xs
+}
 
 var _ Nn = &NetworkNode{}
 

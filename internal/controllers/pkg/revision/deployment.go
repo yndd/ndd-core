@@ -312,7 +312,7 @@ func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision
 							},
 						},
 						{
-							Name:            intent.GetName(),
+							Name:            "intent",
 							Image:           intent.Spec.Controller.Image,
 							ImagePullPolicy: pullPolicy,
 							SecurityContext: &corev1.SecurityContext{

@@ -78,7 +78,7 @@ func (e *EnqueueRequestForAllRevisionsWithRequests) add(obj runtime.Object, queu
 
 	l := &v1.ProviderRevisionList{}
 	if err := e.client.List(context.TODO(), l); err != nil {
-		// TODO(negz): Handle this error?
+		// TODO: Handle this error?
 		return
 	}
 

@@ -25,9 +25,9 @@ import (
 	ndddvrv1 "github.com/yndd/ndd-core/apis/dvr/v1"
 	"github.com/yndd/ndd-runtime/pkg/event"
 	"github.com/yndd/ndd-runtime/pkg/logging"
-	"github.com/yndd/ndd-runtime/pkg/meta"
+	//"github.com/yndd/ndd-runtime/pkg/meta"
 	"github.com/yndd/ndd-runtime/pkg/resource"
-	corev1 "k8s.io/api/core/v1"
+	//corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -185,7 +185,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		return reconcile.Result{}, errors.Wrap(resource.IgnoreNotFound(err), errGetNetworkNode)
 	}
 	log.Debug("Health status", "status", nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status)
-
+	/*
 	if meta.WasDeleted(nn) {
 		// the k8s garbage collector will delete all the objects that has the ownerreference set
 		// as such we dont have to delete the child objects: configmap, service, deployment, serviceaccount, clusterrolebinding
@@ -261,4 +261,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	r.record.Event(nn, event.Normal(reasonSync, "Successfully deployed network device driver"))
 	nn.SetConditions(ndddvrv1.Healthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
 	return reconcile.Result{}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
+	*/
+
+	// TO BE DELETED
+	return reconcile.Result{Requeue: false}, nil
 }

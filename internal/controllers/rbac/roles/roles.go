@@ -50,7 +50,7 @@ const (
 var (
 	verbsEdit   = []string{rbacv1.VerbAll}
 	verbsView   = []string{"get", "list", "watch"}
-	verbsSystem = []string{"get", "list", "watch", "update", "patch", "create"}
+	verbsSystem = []string{"get", "list", "watch", "update", "patch", "create", "delete"}
 )
 
 // * Secrets for provider credentials and connection secrets.
@@ -83,6 +83,86 @@ var rulesSystemExtra = []rbacv1.PolicyRule{
 		APIGroups: []string{"", "apps"},
 		Resources: []string{pluralDeployments},
 		Verbs:     verbsView,
+	},
+	{
+		APIGroups: []string{"", "nddo.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "topo.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "ipam.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "aspool.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "vlanpool.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "nipool.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "esipool.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "org.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "network.ndda.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "srl.ndda.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "sros.ndda.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "as.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "ni.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "esi.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "rt.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"", "vlan.nddr.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
 	},
 }
 
