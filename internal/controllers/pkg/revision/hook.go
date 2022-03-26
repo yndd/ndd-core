@@ -27,6 +27,7 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/resource"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -35,17 +36,28 @@ const (
 	errNotProvider                   = "not a provider package"
 	errNotProviderRevision           = "not a provider revision"
 	errControllerConfig              = "cannot get referenced controller config"
+	errGetCrd                        = "cannot get crd"
 	errDeleteProviderDeployment      = "cannot delete provider package deployment"
 	errDeleteProviderSA              = "cannot delete provider package service account"
+	errDeleteProviderService         = "cannot delete provider package service"
+	errDeleteProviderCertificate     = "cannot delete provider package certificate"
+	errDeleteProviderMutateWebhook   = "cannot delete provider package mutate webhook"
+	errDeleteProviderValidateWebhook = "cannot delete provider package validate webhook"
 	errApplyProviderDeployment       = "cannot apply provider package deployment"
+	errApplyProviderCertificate      = "cannot apply provider package certificate"
 	errApplyProviderSA               = "cannot apply provider package service account"
+	errApplyProviderService          = "cannot apply provider package service"
+	errApplyProviderMutateWebhook    = "cannot apply provider package mutate webhook"
+	errApplyProviderValidateWebhook  = "cannot apply provider package validate webhook"
+
 	errUnavailableProviderDeployment = "provider package deployment is unavailable"
 
-	errNotIntent                   = "not a intent package"
-	errNotIntentRevision           = "not a intent revision"
-	errDeleteIntentDeployment      = "cannot delete intent package deployment"
-	errDeleteIntentSA              = "cannot delete intent package service account"
-	errDeleteIntentService         = "cannot delete intent package service"
+	errNotIntent              = "not a intent package"
+	errNotIntentRevision      = "not a intent revision"
+	errDeleteIntentDeployment = "cannot delete intent package deployment"
+	errDeleteIntentSA         = "cannot delete intent package service account"
+	errDeleteIntentService    = "cannot delete intent package service"
+
 	errApplyIntentDeployment       = "cannot apply intent package deployment"
 	errApplyIntentSA               = "cannot apply intent package service account"
 	errApplyIntentService          = "cannot apply intent package service"
@@ -58,7 +70,7 @@ type Hooks interface {
 	Pre(context.Context, runtime.Object, v1.PackageRevision) error
 
 	// Post performs operations meant to happen after establishing objects.
-	Post(context.Context, runtime.Object, v1.PackageRevision) error
+	Post(context.Context, runtime.Object, v1.PackageRevision, []string) error
 }
 
 // IntentHooks performs operations for a Intent package that requires a
@@ -117,7 +129,7 @@ func (h *IntentHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.Package
 
 // Post creates a packaged provider controller and service account if the
 // revision is active.
-func (h *IntentHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision) error {
+func (h *IntentHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision, crdNames []string) error {
 	po, _ := nddpkg.TryConvert(pkg, &pkgmetav1.Intent{})
 	pkgIntent, ok := po.(*pkgmetav1.Intent)
 	if !ok {
@@ -213,6 +225,32 @@ func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.Packa
 	if err != nil {
 		return errors.Wrap(err, errControllerConfig)
 	}
+	svc := buildProviderService(pkgProvider, pr, h.namespace)
+	if err := h.client.Delete(ctx, svc); resource.IgnoreNotFound(err) != nil {
+		return errors.Wrap(err, errDeleteProviderService)
+	}
+	svcProfile := buildProviderProfileService(pkgProvider, pr, h.namespace)
+	if err := h.client.Delete(ctx, svcProfile); err != nil {
+		return errors.Wrap(err, errDeleteProviderService)
+	}
+	/*
+		svcWebHook := buildProviderWebhookService(pkgProvider, pr, h.namespace)
+		if err := h.client.Delete(ctx, svcWebHook); err != nil {
+			return errors.Wrap(err, errDeleteProviderService)
+		}
+		certWebHook := buildProviderWebhookCertificate(pkgProvider, pr, h.namespace)
+		if err := h.client.Delete(ctx, certWebHook); err != nil {
+			return errors.Wrap(err, errDeleteProviderCertificate)
+		}
+		mutateWebHook := buildProviderWebhookMutate(pkgProvider, pr, h.namespace)
+		if err := h.client.Delete(ctx, mutateWebHook); err != nil {
+			return errors.Wrap(err, errDeleteProviderMutateWebhook)
+		}
+		validateWebHook := buildProviderWebhookValidate(pkgProvider, pr, h.namespace)
+		if err := h.client.Delete(ctx, validateWebHook); err != nil {
+			return errors.Wrap(err, errDeleteProviderValidateWebhook)
+		}
+	*/
 	s, d := buildProviderDeployment(pkgProvider, pr, cc, h.namespace)
 	if err := h.client.Delete(ctx, d); resource.IgnoreNotFound(err) != nil {
 		return errors.Wrap(err, errDeleteProviderDeployment)
@@ -225,7 +263,7 @@ func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.Packa
 
 // Post creates a packaged provider controller and service account if the
 // revision is active.
-func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision) error {
+func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision, crdNames []string) error {
 	po, _ := nddpkg.TryConvert(pkg, &pkgmetav1.Provider{})
 	pkgProvider, ok := po.(*pkgmetav1.Provider)
 	if !ok {
@@ -237,6 +275,49 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 	cc, err := h.getControllerConfig(ctx, pr)
 	if err != nil {
 		return errors.Wrap(err, errControllerConfig)
+	}
+	crds, err := h.getCrds(ctx, crdNames)
+	if err != nil {
+		return errors.Wrap(err, errGetCrd)
+	}
+	/*
+		for _, crd := range crds {
+			versions := []string{}
+			for _, v := range crd.Spec.Versions {
+				versions = append(versions, v.Name)
+			}
+			fmt.Printf("crd group: %s, versions: %v, singularName: %s, pluralName: %s \n", crd.Spec.Group, versions, crd.Spec.Names.Singular, crd.Spec.Names.Plural)
+		}
+	*/
+	svc := buildProviderService(pkgProvider, pr, h.namespace)
+	if err := h.client.Apply(ctx, svc); err != nil {
+		return errors.Wrap(err, errDeleteProviderService)
+	}
+	svcMetricHttps := buildProviderMetricServiceHTTPS(pkgProvider, pr, h.namespace)
+	if err := h.client.Apply(ctx, svcMetricHttps); err != nil {
+		return errors.Wrap(err, errApplyProviderService)
+	}
+	svcProfile := buildProviderProfileService(pkgProvider, pr, h.namespace)
+	if err := h.client.Apply(ctx, svcProfile); err != nil {
+		return errors.Wrap(err, errApplyProviderService)
+	}
+	if len(crds) == 1 {
+		svcWebHook := buildProviderWebhookService(pkgProvider, pr, h.namespace)
+		if err := h.client.Apply(ctx, svcWebHook); err != nil {
+			return errors.Wrap(err, errApplyProviderService)
+		}
+		certWebHook := buildProviderWebhookCertificate(pkgProvider, pr, h.namespace)
+		if err := h.client.Apply(ctx, certWebHook); err != nil {
+			return errors.Wrap(err, errApplyProviderCertificate)
+		}
+		mutateWebHook := buildProviderWebhookMutate(pkgProvider, pr, h.namespace, crds[0])
+		if err := h.client.Apply(ctx, mutateWebHook); err != nil {
+			return errors.Wrap(err, errApplyProviderMutateWebhook)
+		}
+		validateWebHook := buildProviderWebhookValidate(pkgProvider, pr, h.namespace, crds[0])
+		if err := h.client.Apply(ctx, validateWebHook); err != nil {
+			return errors.Wrap(err, errApplyProviderValidateWebhook)
+		}
 	}
 	s, d := buildProviderDeployment(pkgProvider, pr, cc, h.namespace)
 	if err := h.client.Apply(ctx, s); err != nil {
@@ -269,6 +350,18 @@ func (h *ProviderHooks) getControllerConfig(ctx context.Context, pr v1.PackageRe
 	return cc, nil
 }
 
+func (h *ProviderHooks) getCrds(ctx context.Context, crdNames []string) ([]*extv1.CustomResourceDefinition, error) {
+	crds := []*extv1.CustomResourceDefinition{}
+	for _, crdName := range crdNames {
+		crd := &extv1.CustomResourceDefinition{}
+		if err := h.client.Get(ctx, types.NamespacedName{Name: crdName}, crd); err != nil {
+			return nil, errors.Wrap(err, errGetCrd)
+		}
+		crds = append(crds, crd)
+	}
+	return crds, nil
+}
+
 // NopHooks performs no operations.
 type NopHooks struct{}
 
@@ -283,6 +376,6 @@ func (h *NopHooks) Pre(context.Context, runtime.Object, v1.PackageRevision) erro
 }
 
 // Post does nothing and returns nil.
-func (h *NopHooks) Post(context.Context, runtime.Object, v1.PackageRevision) error {
+func (h *NopHooks) Post(context.Context, runtime.Object, v1.PackageRevision, []string) error {
 	return nil
 }

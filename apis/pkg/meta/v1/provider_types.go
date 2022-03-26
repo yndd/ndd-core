@@ -27,7 +27,17 @@ type ProviderSpec struct {
 	Controller ControllerSpec `json:"controller"`
 
 	MetaSpec `json:",inline"`
+
+	//Api []Api `json:"ndd,omitempty"`
 }
+
+/*
+type Api struct {
+	Group   string `json:"group"`
+	Version string `json:"version"`
+	Kind    string `json:"kind"`
+}
+*/
 
 // ControllerSpec specifies the configuration for the packaged Provider
 // controller.

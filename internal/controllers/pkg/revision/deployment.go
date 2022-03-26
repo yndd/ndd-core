@@ -26,6 +26,7 @@ import (
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
 	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-runtime/pkg/meta"
+	"github.com/yndd/ndd-runtime/pkg/utils"
 )
 
 var (
@@ -38,6 +39,7 @@ var (
 )
 
 func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string) (*corev1.ServiceAccount, *appsv1.Deployment) { // nolint:interfacer,gocyclo
+
 	s := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            revision.GetName(),
@@ -94,6 +96,64 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 		args = append(args, a...)
 	}
 
+	argsProxy := []string{
+		"--secure-listen-address=0.0.0.0:8443",
+		"--upstream=http://127.0.0.1:8080/",
+		"--logtostderr=true",
+		"--v=10",
+	}
+
+	metricLabelNameHttps := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "https"}, "-")
+	profilerLabel := strings.Join([]string{"nddp-profile-svc", revision.GetName()}, "-")
+
+	containers := []corev1.Container{}
+	containers = append(containers, corev1.Container{
+		Name:  "kube-rbac-proxy",
+		Image: "gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0",
+		Args:  argsProxy,
+		Ports: []corev1.ContainerPort{
+			{
+				ContainerPort: 8443,
+				Name:          "https",
+			},
+		},
+	})
+	containers = append(containers, corev1.Container{
+		Name:            "provider",
+		Image:           provider.Spec.Controller.Image,
+		ImagePullPolicy: pullPolicy,
+		SecurityContext: &corev1.SecurityContext{
+			RunAsUser:                &runAsUser,
+			RunAsGroup:               &runAsGroup,
+			AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+			Privileged:               &privileged,
+			RunAsNonRoot:             &runAsNonRoot,
+		},
+		Args: args,
+		Env: []corev1.EnvVar{
+			envNameSpace,
+			envPodIP,
+			envPodName,
+		},
+		Command: []string{
+			"/manager",
+		},
+
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "profiledata",
+				MountPath: "/profiledata",
+			},
+			{
+				Name:      "cert",
+				MountPath: "/tmp/k8s-webhook-server/serving-certs",
+				ReadOnly:  true,
+			},
+		},
+	})
+
+	webhookCertificateName := strings.Join([]string{revision.GetName(), "webhook", "serving-cert"}, "-")
+	webhookServiceName := strings.Join([]string{revision.GetName(), "webhook", "svc"}, "-")
 	d := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            revision.GetName(),
@@ -103,13 +163,23 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"pkg.ndd.yndd.io/revision": revision.GetName()},
+				MatchLabels: map[string]string{
+					"pkg.ndd.yndd.io/revision": revision.GetName(),
+					pkgmetav1.LabelPkgMeta:     metricLabelNameHttps,
+					"profiler":                 profilerLabel,
+					"webhook":                  webhookServiceName,
+				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      provider.GetName(),
 					Namespace: namespace,
-					Labels:    map[string]string{"pkg.ndd.yndd.io/revision": revision.GetName()},
+					Labels: map[string]string{
+						"pkg.ndd.yndd.io/revision": revision.GetName(),
+						pkgmetav1.LabelPkgMeta:     metricLabelNameHttps,
+						"profiler":                 profilerLabel,
+						"webhook":                  webhookServiceName,
+					},
 				},
 				Spec: corev1.PodSpec{
 					SecurityContext: &corev1.PodSecurityContext{
@@ -119,26 +189,21 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 					},
 					ServiceAccountName: s.GetName(),
 					ImagePullSecrets:   revision.GetPackagePullSecrets(),
-					Containers: []corev1.Container{
+					Containers:         containers,
+					Volumes: []corev1.Volume{
 						{
-							Name:            provider.GetName(),
-							Image:           provider.Spec.Controller.Image,
-							ImagePullPolicy: pullPolicy,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser:                &runAsUser,
-								RunAsGroup:               &runAsGroup,
-								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
-								Privileged:               &privileged,
-								RunAsNonRoot:             &runAsNonRoot,
+							Name: "profiledata",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
-							Args: args,
-							Env: []corev1.EnvVar{
-								envNameSpace,
-								envPodIP,
-								envPodName,
-							},
-							Command: []string{
-								"/manager",
+						},
+						{
+							Name: "cert",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName:  webhookCertificateName,
+									DefaultMode: utils.Int32Ptr(420),
+								},
 							},
 						},
 					},

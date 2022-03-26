@@ -39,6 +39,13 @@ func (c *Provider) GetDependencies() []Dependency {
 	return c.Spec.MetaSpec.DependsOn
 }
 
+// GetApis gets the Api info in the package's.
+/*
+func (c *Provider) GetApis() []Api {
+	return c.Spec.Api
+}
+*/
+
 // GetNddConstraints gets the Intent package's ndd version
 // constraints.
 func (c *Intent) GetNddConstraints() *NddConstraints {

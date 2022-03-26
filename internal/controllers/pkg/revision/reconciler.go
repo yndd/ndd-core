@@ -297,6 +297,8 @@ func NewReconciler(mgr manager.Manager, opts ...ReconcilerOption) *Reconciler {
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="apiextensions.k8s.io",resources=customresourcedefinitions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=locks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations;mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile package revision.
 func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) { // nolint:gocyclo
@@ -424,11 +426,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 	}
 
+	crdNames := []string{}
+	for _, r := range refs {
+		if r.Kind == "CustomResourceDefinition" {
+			log.Debug("establisher", "CRD Name", r.Name)
+			crdNames = append(crdNames, r.Name)
+		}
+	}
+
 	// Update object list in package revision status with objects for which
 	// ownership or control has been established.
 	pr.SetObjects(refs)
 
-	if err := r.hook.Post(ctx, pkgMeta, pr); err != nil {
+	if err := r.hook.Post(ctx, pkgMeta, pr, crdNames); err != nil {
 		log.Debug(errPostHook, "error", err)
 		r.record.Event(pr, event.Warning(reasonSync, errors.Wrap(err, errPostHook)))
 		pr.SetConditions(v1.Unhealthy())

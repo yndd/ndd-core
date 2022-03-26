@@ -186,81 +186,81 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	}
 	log.Debug("Health status", "status", nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status)
 	/*
-	if meta.WasDeleted(nn) {
-		// the k8s garbage collector will delete all the objects that has the ownerreference set
-		// as such we dont have to delete the child objects: configmap, service, deployment, serviceaccount, clusterrolebinding
+		if meta.WasDeleted(nn) {
+			// the k8s garbage collector will delete all the objects that has the ownerreference set
+			// as such we dont have to delete the child objects: configmap, service, deployment, serviceaccount, clusterrolebinding
 
-		// Delete finalizer after the object is deleted
-		if err := r.nnFinalizer.RemoveFinalizer(ctx, nn); err != nil {
-			log.Debug(errRemoveFinalizer, "error", err)
-			r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errRemoveFinalizer)))
+			// Delete finalizer after the object is deleted
+			if err := r.nnFinalizer.RemoveFinalizer(ctx, nn); err != nil {
+				log.Debug(errRemoveFinalizer, "error", err)
+				r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errRemoveFinalizer)))
+				return reconcile.Result{RequeueAfter: shortWait}, nil
+			}
+			return reconcile.Result{Requeue: false}, nil
+		}
+
+		// Add a finalizer to newly created objects and update the conditions
+		if err := r.nnFinalizer.AddFinalizer(ctx, nn); err != nil {
+			log.Debug(errAddFinalizer, "error", err)
+			r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errAddFinalizer)))
 			return reconcile.Result{RequeueAfter: shortWait}, nil
 		}
-		return reconcile.Result{Requeue: false}, nil
-	}
 
-	// Add a finalizer to newly created objects and update the conditions
-	if err := r.nnFinalizer.AddFinalizer(ctx, nn); err != nil {
-		log.Debug(errAddFinalizer, "error", err)
-		r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errAddFinalizer)))
-		return reconcile.Result{RequeueAfter: shortWait}, nil
-	}
+		// Retrieve the Login details from the network node spec and validate
+		// the network node details and build the credentials for communicating
+		// to the network node.
+		creds, err := r.validator.ValidateCredentials(ctx, nn.Namespace, *nn.Spec.Target.CredentialsName, *nn.Spec.Target.Address)
+		log.Debug("Network node creds", "creds", creds, "err", err)
+		if err != nil || creds == nil {
+			// remove delete the configmap, service, deployment when the service was healthy
+			if nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status == corev1.ConditionTrue {
+				if err := r.hooks.Destroy(ctx, nn, &corev1.Container{}); err != nil {
+					log.Debug(errDeleteObjects, "error", err)
+					r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errDeleteObjects)))
+					nn.SetConditions(ndddvrv1.Unhealthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
+					return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
+				}
+			}
+			log.Debug(errCredentials, "error", err)
+			r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errCredentials)))
+			nn.SetConditions(ndddvrv1.Unhealthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
+			return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
+		}
 
-	// Retrieve the Login details from the network node spec and validate
-	// the network node details and build the credentials for communicating
-	// to the network node.
-	creds, err := r.validator.ValidateCredentials(ctx, nn.Namespace, *nn.Spec.Target.CredentialsName, *nn.Spec.Target.Address)
-	log.Debug("Network node creds", "creds", creds, "err", err)
-	if err != nil || creds == nil {
-		// remove delete the configmap, service, deployment when the service was healthy
-		if nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status == corev1.ConditionTrue {
-			if err := r.hooks.Destroy(ctx, nn, &corev1.Container{}); err != nil {
-				log.Debug(errDeleteObjects, "error", err)
-				r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errDeleteObjects)))
-				nn.SetConditions(ndddvrv1.Unhealthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
-				return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
+		// validate device driver information
+		// NOTE: the parameters are required in the api and will get defaults if not specified, so we dont have to add validation
+		// if they exist in the api or not
+		c, err := r.validator.ValidateDeviceDriver(ctx, nn.Namespace, nn.Name, string(*nn.Spec.DeviceDriverKind), *nn.Spec.GrpcServerPort)
+		log.Debug("Validate device driver", "containerInfo", c, "err", err)
+		if err != nil || c == nil {
+			if nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status == corev1.ConditionTrue {
+				if err := r.hooks.Destroy(ctx, nn, &corev1.Container{}); err != nil {
+					log.Debug(errDeleteObjects, "error", err)
+					r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errDeleteObjects)))
+					nn.SetConditions(ndddvrv1.Unhealthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
+					return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
+				}
 			}
 		}
-		log.Debug(errCredentials, "error", err)
-		r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errCredentials)))
-		nn.SetConditions(ndddvrv1.Unhealthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
-		return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
-	}
 
-	// validate device driver information
-	// NOTE: the parameters are required in the api and will get defaults if not specified, so we dont have to add validation
-	// if they exist in the api or not
-	c, err := r.validator.ValidateDeviceDriver(ctx, nn.Namespace, nn.Name, string(*nn.Spec.DeviceDriverKind), *nn.Spec.GrpcServerPort)
-	log.Debug("Validate device driver", "containerInfo", c, "err", err)
-	if err != nil || c == nil {
-		if nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status == corev1.ConditionTrue {
-			if err := r.hooks.Destroy(ctx, nn, &corev1.Container{}); err != nil {
-				log.Debug(errDeleteObjects, "error", err)
-				r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errDeleteObjects)))
-				nn.SetConditions(ndddvrv1.Unhealthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
-				return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
-			}
+		log.Debug("Condition Status", "Healthy", nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status, "Configured", nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverConfigured).Status)
+		if nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status == corev1.ConditionTrue &&
+			nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverConfigured).Status == corev1.ConditionTrue {
+			// this is most likely a restart of the ndd-core, given the status of the deployment of the network
+			// node is ok we should stop the reconciliation here
+			return reconcile.Result{}, nil
 		}
-	}
 
-	log.Debug("Condition Status", "Healthy", nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status, "Configured", nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverConfigured).Status)
-	if nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverHealthy).Status == corev1.ConditionTrue &&
-		nn.GetCondition(ndddvrv1.ConditionKindDeviceDriverConfigured).Status == corev1.ConditionTrue {
-		// this is most likely a restart of the ndd-core, given the status of the deployment of the network
-		// node is ok we should stop the reconciliation here
-		return reconcile.Result{}, nil
-	}
-
-	// when everything is validated we want to bring the deployment in healthy status by all means
-	if err := r.hooks.Deploy(ctx, nn, c); err != nil {
-		log.Debug(errCreateObjects, "error", err)
-		r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errCreateObjects)))
-		nn.SetConditions(ndddvrv1.Unhealthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
-		return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
-	}
-	r.record.Event(nn, event.Normal(reasonSync, "Successfully deployed network device driver"))
-	nn.SetConditions(ndddvrv1.Healthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
-	return reconcile.Result{}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
+		// when everything is validated we want to bring the deployment in healthy status by all means
+		if err := r.hooks.Deploy(ctx, nn, c); err != nil {
+			log.Debug(errCreateObjects, "error", err)
+			r.record.Event(nn, event.Warning(reasonSync, errors.Wrap(err, errCreateObjects)))
+			nn.SetConditions(ndddvrv1.Unhealthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
+			return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
+		}
+		r.record.Event(nn, event.Normal(reasonSync, "Successfully deployed network device driver"))
+		nn.SetConditions(ndddvrv1.Healthy(), ndddvrv1.NotConfigured(), ndddvrv1.NotDiscovered())
+		return reconcile.Result{}, errors.Wrap(r.client.Status().Update(ctx, nn), errUpdateStatus)
 	*/
 
 	// TO BE DELETED

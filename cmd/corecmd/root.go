@@ -32,11 +32,14 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	dvrv1 "github.com/yndd/ndd-core/apis/dvr/v1"
 	metapkgv1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
 	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-core/internal/initializer"
 	"github.com/yndd/ndd-runtime/pkg/logging"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	extv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	//+kubebuilder:scaffold:imports
@@ -74,6 +77,9 @@ func init() {
 	utilruntime.Must(metapkgv1.AddToScheme(scheme))
 	utilruntime.Must(extv1.AddToScheme(scheme))
 	utilruntime.Must(extv1beta1.AddToScheme(scheme))
+	utilruntime.Must(certv1.AddToScheme(scheme))
+	utilruntime.Must(certmetav1.AddToScheme(scheme))
+	utilruntime.Must(admissionv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 
 	cfg, err := ctrl.GetConfig()
