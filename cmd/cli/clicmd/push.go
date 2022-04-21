@@ -36,6 +36,7 @@ const (
 var (
 	nddPackageName string
 	packageTag     string
+	local          bool
 )
 
 // pushCmd represents the push command
@@ -74,6 +75,22 @@ var pushCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if local {
+			f, err := os.Create(nddPackageName + ".tar")
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			reg, err := name.NewRegistry("local")
+			if err != nil {
+				return err
+			}
+			return tarball.Write(name.Tag{
+				Repository: name.Repository{
+					Registry: reg,
+				},
+			}, img, f)
+		}
 		return remote.Write(tag, img, remote.WithAuthFromKeychain(authn.DefaultKeychain))
 	},
 }
@@ -81,4 +98,5 @@ var pushCmd = &cobra.Command{
 func init() {
 	packageCmd.AddCommand(pushCmd)
 	pushCmd.Flags().StringVarP(&nddPackageName, "NddPackageName", "p", "", "Path to package. If not specified and only one package exists in current directory it will be used.")
+	pushCmd.Flags().BoolVarP(&local, "local", "", false, "save image to tarball.")
 }
