@@ -60,6 +60,11 @@ var (
 // * NetworkNodes for make the ndd work
 var rulesSystemExtra = []rbacv1.PolicyRule{
 	{
+		APIGroups: []string{"*"},
+		Resources: []string{pluralSecrets, pluralConfigmaps, pluralEvents, pluralLeases},
+		Verbs:     verbsSystem,
+	},
+	{
 		APIGroups: []string{"coordination/v1"},
 		Resources: []string{pluralSecrets, pluralConfigmaps, pluralEvents, pluralLeases},
 		Verbs:     verbsSystem,
