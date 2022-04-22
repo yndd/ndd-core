@@ -33,7 +33,7 @@ type NetworkNodeSpec struct {
 
 	// Type defines the device type of the network device
 	// +optional
-	// +kubebuilder:default=srl
+	// +kubebuilder:default=nokia-srl
 	Type *nddv1.DeviceType `json:"type,omitempty"`
 
 	// GrpcServerPort defines the grpc server port to connect to the device driver
