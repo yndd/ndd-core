@@ -2454,7 +2454,7 @@ spec:
                 - credentialsName
                 type: object
               type:
-                default: srl
+                default: nokia-srl
                 description: Type defines the device type of the network device
                 type: string
             required:
@@ -3357,7 +3357,7 @@ spec:
                     - credentialsName
                     type: object
                   type:
-                    default: srl
+                    default: nokia-srl
                     description: Type defines the device type of the network device
                     type: string
                 required:
