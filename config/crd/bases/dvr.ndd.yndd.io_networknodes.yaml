@@ -88,8 +88,8 @@ spec:
             properties:
               deviceDriverKind:
                 default: gnmi
-                description: DeviceDriver defines the device driver details to connect
-                  to the network device
+                description: DeviceDriverKind defines the device driver details to
+                  connect to the network device
                 type: string
               grpcServerPort:
                 default: 9999
@@ -140,6 +140,10 @@ spec:
                 - address
                 - credentialsName
                 type: object
+              type:
+                default: srl
+                description: Type defines the device type of the network device
+                type: string
             required:
             - target
             type: object
@@ -207,6 +211,11 @@ spec:
                     description: the Serial Number of the device the device driver
                       is connected to
                     type: string
+                  supportedEncodings:
+                    description: Supported Encodings by the device
+                    items:
+                      type: string
+                    type: array
                   swVersion:
                     description: SW version that is running on the device
                     type: string
@@ -1455,8 +1464,8 @@ spec:
                 properties:
                   deviceDriverKind:
                     default: gnmi
-                    description: DeviceDriver defines the device driver details to
-                      connect to the network device
+                    description: DeviceDriverKind defines the device driver details
+                      to connect to the network device
                     type: string
                   grpcServerPort:
                     default: 9999
@@ -1509,6 +1518,10 @@ spec:
                     - address
                     - credentialsName
                     type: object
+                  type:
+                    default: srl
+                    description: Type defines the device type of the network device
+                    type: string
                 required:
                 - target
                 type: object
