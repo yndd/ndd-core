@@ -123,6 +123,9 @@ type DeviceDetails struct {
 
 	// the Serial Number of the device the device driver is connected to
 	SerialNumber *string `json:"serialNumber,omitempty"`
+
+	// Supported Encodings by the device
+	SupportedEncodings []string `json:"supportedEncodings,omitempty"`
 }
 
 // DeviceStatus defines the observed state of the Device

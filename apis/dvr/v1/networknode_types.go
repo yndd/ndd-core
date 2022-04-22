@@ -26,10 +26,15 @@ type NetworkNodeSpec struct {
 	// Target defines the details how we connect to the network device
 	Target *TargetDetails `json:"target"`
 
-	// DeviceDriver defines the device driver details to connect to the network device
+	// DeviceDriverKind defines the device driver details to connect to the network device
 	// +optional
 	// +kubebuilder:default=gnmi
 	DeviceDriverKind *DeviceDriverKind `json:"deviceDriverKind,omitempty"`
+
+	// Type defines the device type of the network device
+	// +optional
+	// +kubebuilder:default=srl
+	Type *nddv1.DeviceType `json:"type,omitempty"`
 
 	// GrpcServerPort defines the grpc server port to connect to the device driver
 	// from the network device provider
