@@ -53,3 +53,29 @@ func buildProviderWebhookCertificate(provider *pkgmetav1.Provider, revision v1.P
 		},
 	}
 }
+
+func buildProviderGnmiCertificate(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string) *certv1.Certificate { // nolint:interfacer,gocyclo
+	gnmiCertificateName := strings.Join([]string{revision.GetName(), "gnmi", "serving-cert"}, "-")
+	gnmiServiceName := strings.Join([]string{revision.GetName(), "gnmi", "svc"}, "-")
+	return &certv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gnmiCertificateName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				"gnmi": gnmiCertificateName,
+			},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
+		},
+		Spec: certv1.CertificateSpec{
+			DNSNames: []string{
+				strings.Join([]string{gnmiServiceName, namespace, "svc"}, "."),
+				strings.Join([]string{gnmiServiceName, namespace, "svc", "cluster", "local"}, "."),
+			},
+			IssuerRef: certmetav1.ObjectReference{
+				Kind: "Issuer",
+				Name: "selfsigned-issuer",
+			},
+			SecretName: gnmiCertificateName,
+		},
+	}
+}

@@ -103,8 +103,8 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 		"--v=10",
 	}
 
-	metricLabelNameHttps := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "https"}, "-")
-	profilerLabel := strings.Join([]string{"nddp-profile-svc", revision.GetName()}, "-")
+	//metricLabelNameHttps := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "https"}, "-")
+	//profilerLabel := strings.Join([]string{"nddp-profile-svc", revision.GetName()}, "-")
 
 	containers := []corev1.Container{}
 	containers = append(containers, corev1.Container{
@@ -145,8 +145,13 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 				MountPath: "/profiledata",
 			},
 			{
-				Name:      "cert",
+				Name:      "webhookcert",
 				MountPath: "/tmp/k8s-webhook-server/serving-certs",
+				ReadOnly:  true,
+			},
+			{
+				Name:      "gnmicert",
+				MountPath: "/tmp/k8s-gnmi-server/serving-certs",
 				ReadOnly:  true,
 			},
 		},
@@ -154,6 +159,10 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 
 	webhookCertificateName := strings.Join([]string{revision.GetName(), "webhook", "serving-cert"}, "-")
 	webhookServiceName := strings.Join([]string{revision.GetName(), "webhook", "svc"}, "-")
+	gnmiCertificateName := strings.Join([]string{revision.GetName(), "gnmi", "serving-cert"}, "-")
+	gnmiServiceName := strings.Join([]string{revision.GetName(), "gnmi", "svc"}, "-")
+	metricHTTPSServiceName := strings.Join([]string{revision.GetName(), "metrichttps", "svc"}, "-")
+	profileServiceName := strings.Join([]string{revision.GetName(), "profiler", "svc"}, "-")
 	d := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            revision.GetName(),
@@ -165,9 +174,11 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"pkg.ndd.yndd.io/revision": revision.GetName(),
-					pkgmetav1.LabelPkgMeta:     metricLabelNameHttps,
-					"profiler":                 profilerLabel,
-					"webhook":                  webhookServiceName,
+					//pkgmetav1.LabelPkgMeta:     metricLabelNameHttps,
+					"metrichttps": metricHTTPSServiceName,
+					"profiler":    profileServiceName,
+					"webhook":     webhookServiceName,
+					"gnmi":        gnmiServiceName,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
@@ -176,9 +187,11 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 					Namespace: namespace,
 					Labels: map[string]string{
 						"pkg.ndd.yndd.io/revision": revision.GetName(),
-						pkgmetav1.LabelPkgMeta:     metricLabelNameHttps,
-						"profiler":                 profilerLabel,
-						"webhook":                  webhookServiceName,
+						//pkgmetav1.LabelPkgMeta:     metricLabelNameHttps,
+						"metrichttps": metricHTTPSServiceName,
+						"profiler":    profileServiceName,
+						"webhook":     webhookServiceName,
+						"gnmi":        gnmiServiceName,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -198,10 +211,19 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 							},
 						},
 						{
-							Name: "cert",
+							Name: "webhookcert",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
 									SecretName:  webhookCertificateName,
+									DefaultMode: utils.Int32Ptr(420),
+								},
+							},
+						},
+						{
+							Name: "gnmicert",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName:  gnmiCertificateName,
 									DefaultMode: utils.Int32Ptr(420),
 								},
 							},

@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/yndd/ndd-core/internal/controllers/dvr"
 	"github.com/yndd/ndd-core/internal/controllers/pkg"
 	"github.com/yndd/ndd-core/internal/nddpkg"
 	"github.com/yndd/ndd-runtime/pkg/logging"
@@ -76,10 +75,6 @@ var startCmd = &cobra.Command{
 
 		if err := pkg.Setup(mgr, logging.NewLogrLogger(zlog.WithName("nddcore-pkg")), pkgCache, namespace); err != nil {
 			return errors.Wrap(err, "Cannot add ndd packages controllers to manager")
-		}
-
-		if err := dvr.Setup(mgr, logging.NewLogrLogger(zlog.WithName("nddcore-dvr")), namespace); err != nil {
-			return errors.Wrap(err, "Cannot add ndd driver controllers to manager")
 		}
 
 		// +kubebuilder:scaffold:builder

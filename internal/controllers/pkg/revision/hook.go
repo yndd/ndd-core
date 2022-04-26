@@ -289,9 +289,13 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 			fmt.Printf("crd group: %s, versions: %v, singularName: %s, pluralName: %s \n", crd.Spec.Group, versions, crd.Spec.Names.Singular, crd.Spec.Names.Plural)
 		}
 	*/
-	svc := buildProviderService(pkgProvider, pr, h.namespace)
-	if err := h.client.Apply(ctx, svc); err != nil {
+	svcGnmi := buildProviderService(pkgProvider, pr, h.namespace)
+	if err := h.client.Apply(ctx, svcGnmi); err != nil {
 		return errors.Wrap(err, errDeleteProviderService)
+	}
+	certGnmi := buildProviderGnmiCertificate(pkgProvider, pr, h.namespace)
+	if err := h.client.Apply(ctx, certGnmi); err != nil {
+		return errors.Wrap(err, errApplyProviderCertificate)
 	}
 	svcMetricHttps := buildProviderMetricServiceHTTPS(pkgProvider, pr, h.namespace)
 	if err := h.client.Apply(ctx, svcMetricHttps); err != nil {

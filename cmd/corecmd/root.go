@@ -34,7 +34,7 @@ import (
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	dvrv1 "github.com/yndd/ndd-core/apis/dvr/v1"
+	//dvrv1 "github.com/yndd/ndd-core/apis/dvr/v1"
 	metapkgv1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
 	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-core/internal/initializer"
@@ -72,7 +72,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable debug mode")
 
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(dvrv1.AddToScheme(scheme))
+	//utilruntime.Must(dvrv1.AddToScheme(scheme))
 	utilruntime.Must(pkgv1.AddToScheme(scheme))
 	utilruntime.Must(metapkgv1.AddToScheme(scheme))
 	utilruntime.Must(extv1.AddToScheme(scheme))
@@ -95,7 +95,7 @@ func init() {
 	i := initializer.New(cl,
 		initializer.NewLockObject(),
 		initializer.NewCRDWaiter([]string{
-			fmt.Sprintf("%s.%s", "networknodes", dvrv1.Group),
+			//fmt.Sprintf("%s.%s", "networknodes", dvrv1.Group),
 			fmt.Sprintf("%s.%s", "intents", pkgv1.Group),
 			fmt.Sprintf("%s.%s", "providers", pkgv1.Group),
 			fmt.Sprintf("%s.%s", "providerrevisions", pkgv1.Group),
