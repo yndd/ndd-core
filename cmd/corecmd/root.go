@@ -35,7 +35,7 @@ import (
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	//dvrv1 "github.com/yndd/ndd-core/apis/dvr/v1"
-	metapkgv1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
+	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
 	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-core/internal/initializer"
 	"github.com/yndd/ndd-runtime/pkg/logging"
@@ -74,7 +74,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//utilruntime.Must(dvrv1.AddToScheme(scheme))
 	utilruntime.Must(pkgv1.AddToScheme(scheme))
-	utilruntime.Must(metapkgv1.AddToScheme(scheme))
+	utilruntime.Must(pkgmetav1.AddToScheme(scheme))
 	utilruntime.Must(extv1.AddToScheme(scheme))
 	utilruntime.Must(extv1beta1.AddToScheme(scheme))
 	utilruntime.Must(certv1.AddToScheme(scheme))
@@ -100,6 +100,7 @@ func init() {
 			fmt.Sprintf("%s.%s", "providers", pkgv1.Group),
 			fmt.Sprintf("%s.%s", "providerrevisions", pkgv1.Group),
 			fmt.Sprintf("%s.%s", "intentrevisions", pkgv1.Group),
+			fmt.Sprintf("%s.%s", "providers", pkgmetav1.Group),
 		}, time.Minute, time.Second, logging.NewLogrLogger(zlog.WithName("nddcoreinit"))),
 	)
 

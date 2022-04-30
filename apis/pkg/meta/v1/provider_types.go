@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -26,18 +27,18 @@ type ProviderSpec struct {
 	// Configuration for the packaged Provider's controller.
 	Controller ControllerSpec `json:"controller"`
 
+	Pods []PodSpec `json:"pods,omitempty"`
+
 	MetaSpec `json:",inline"`
 
-	//Api []Api `json:"ndd,omitempty"`
+	Api []Api `json:"api,omitempty"`
 }
 
-/*
 type Api struct {
 	Group   string `json:"group"`
 	Version string `json:"version"`
 	Kind    string `json:"kind"`
 }
-*/
 
 // ControllerSpec specifies the configuration for the packaged Provider
 // controller.
@@ -52,6 +53,49 @@ type ControllerSpec struct {
 	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
 }
 
+type DeploymentType string
+
+const (
+	DeploymentTypeStatefulset DeploymentType = "statefulset"
+	DeploymentTypeDeployment  DeploymentType = "deployment"
+)
+
+type Extras struct {
+	Name        string `json:"name"`
+	Webhook     bool   `json:"webhook,omitempty"`
+	Certificate bool   `json:"certificate,omitempty"`
+	Service     bool   `json:"service,omitempty"`
+	Volume      bool   `json:"volume,omitempty"`
+}
+
+type ContainerSpec struct {
+	// Name of the pod
+	Name string `json:"name"`
+	// Image is the Pod image used by the provider
+	Image string `json:"image"`
+}
+
+type PodSpec struct {
+	// Name of the pod
+	Name string `json:"name"`
+
+	// Type is the type of the deployment
+	// +kubebuilder:default=statefulset
+	Type DeploymentType `json:"type,omitempty"`
+
+	// PermissionRequests for RBAC rules required for this provider's controller
+	// to function. The RBAC manager is responsible for assessing the requested
+	// permissions.
+	// +optional
+	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
+
+	// Extras is certificates, volumes, webhook, etc
+	Extras []Extras `json:"extras,omitempty"`
+
+	// Container identifies the containers in the pod
+	Containers []corev1.Container `json:"containers,omitempty"`
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 
@@ -63,9 +107,18 @@ type Provider struct {
 	Spec ProviderSpec `json:"spec"`
 }
 
+//+kubebuilder:object:root=true
+
+// A ProviderList is the description of a Ndd Provider package.
+type ProviderList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Provider `json:"items"`
+}
+
 // Hub marks this type as the conversion hub.
 func (p *Provider) Hub() {}
 
 func init() {
-	SchemeBuilder.Register(&Provider{})
+	SchemeBuilder.Register(&Provider{}, &ProviderList{})
 }

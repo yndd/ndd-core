@@ -18,7 +18,6 @@ package revision
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Masterminds/semver"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -73,8 +72,6 @@ func (m *PackageDependencyManager) Resolve(ctx context.Context, pkg runtime.Obje
 	if !ok {
 		return found, installed, invalid, errors.New(errNotMeta)
 	}
-
-	fmt.Printf("Package: %v\n", pack)
 
 	// Copy package dependencies into Lock Dependencies.
 	sources := make([]pkgmetav1.Dependency, len(pack.GetDependencies()))
@@ -184,7 +181,7 @@ func (m *PackageDependencyManager) Resolve(ctx context.Context, pkg runtime.Obje
 	var invalidDeps []string
 	for _, dep := range self.Dependencies {
 		// *WORKAROUND TO BE REMOVED
-		fmt.Printf("Dependency: %v \n", dep)
+
 		_, err := d.GetNode(dep.Package)
 		if err != nil {
 			return found, installed, invalid, errors.New(errDependencyNotInGraph)

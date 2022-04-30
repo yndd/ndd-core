@@ -17,7 +17,6 @@ limitations under the License.
 package nddpkg
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -143,6 +142,5 @@ func parseNameFromPackage(bs []byte) (string, error) {
 func parseKindFromPackage(bs []byte) (string, error) {
 	p := &metaPkg{}
 	err := yaml.Unmarshal(bs, p)
-	fmt.Printf("Package: %v\n", p)
 	return p.Metadata.Kind, err
 }

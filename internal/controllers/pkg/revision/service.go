@@ -29,6 +29,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+const (
+	serviceSuffix = "svc"
+	certSuffix    = "serving-cert"
+
+	metricsKey       = "metrics"
+	profilerKey      = "profiler"
+	revisionKey      = "revision"
+	packageNamespace = "pkg.ndd.yndd.io"
+)
+
 func buildIntentService(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
 	//gnmiLabelName := strings.Join([]string{pkgmetav1.PrefixGnmiService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
 	gnmiLabelName := strings.Join([]string{pkgmetav1.PrefixGnmiService, revision.GetName()}, "-")
@@ -130,9 +140,8 @@ func buildIntentMetricServiceHTTP(intent *pkgmetav1.Intent, revision v1.PackageR
 	}
 }
 
+/*
 func buildProviderService(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	//gnmiLabelName := strings.Join([]string{pkgmetav1.PrefixGnmiService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
-	//gnmiLabelName := strings.Join([]string{pkgmetav1.PrefixGnmiService, revision.GetName()}, "-")
 	gnmiServiceName := strings.Join([]string{revision.GetName(), "gnmi", "svc"}, "-")
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -159,27 +168,26 @@ func buildProviderService(provider *pkgmetav1.Provider, revision v1.PackageRevis
 		},
 	}
 }
+*/
 
 func buildProviderMetricServiceHTTPS(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
-	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "https"}, "-")
-	metricHTTPSServiceName := strings.Join([]string{revision.GetName(), "metrichttps", "svc"}, "-")
+	metricHTTPSServiceName := strings.Join([]string{provider.GetName(), metricsKey, serviceSuffix}, "-")
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      metricHTTPSServiceName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"metrichttps": metricHTTPSServiceName,
+				strings.Join([]string{packageNamespace, metricsKey}, "/"): metricHTTPSServiceName,
 			},
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"metrichttps": metricHTTPSServiceName,
+				metricsKey: metricHTTPSServiceName,
 			},
 			Ports: []corev1.ServicePort{
 				{
-					Name:       "metrics",
+					Name:       metricsKey,
 					Port:       pkgmetav1.MetricServerPortHttps,
 					TargetPort: intstr.FromString("https"),
 					Protocol:   "TCP",
@@ -190,25 +198,23 @@ func buildProviderMetricServiceHTTPS(provider *pkgmetav1.Provider, revision v1.P
 }
 
 func buildProviderProfileService(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
-	//profileLabelName := strings.Join([]string{"nddp-profile-svc", revision.GetName()}, "-")
-	profileServiceName := strings.Join([]string{revision.GetName(), "profiler", "svc"}, "-")
+	profileServiceName := strings.Join([]string{provider.GetName(), profilerKey, serviceSuffix}, "-")
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      profileServiceName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"profiler": profileServiceName,
+				strings.Join([]string{packageNamespace, profilerKey}, "/"): profileServiceName,
 			},
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"profiler": profileServiceName,
+				profilerKey: profileServiceName,
 			},
 			Ports: []corev1.ServicePort{
 				{
-					Name:       "profiledata",
+					Name:       profilerKey,
 					Port:       8000,
 					TargetPort: intstr.FromInt(8000),
 					Protocol:   "TCP",
@@ -218,6 +224,7 @@ func buildProviderProfileService(provider *pkgmetav1.Provider, revision v1.Packa
 	}
 }
 
+/*
 func buildProviderWebhookService(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
 	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
 	webhookServiceName := strings.Join([]string{revision.GetName(), "webhook", "svc"}, "-")
@@ -245,3 +252,4 @@ func buildProviderWebhookService(provider *pkgmetav1.Provider, revision v1.Packa
 		},
 	}
 }
+*/

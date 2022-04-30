@@ -214,7 +214,7 @@ func SetupProviderRevision(mgr ctrl.Manager, l logging.Logger, cache nddpkg.Cach
 		WithHooks(NewProviderHooks(resource.ClientApplicator{
 			Client:     mgr.GetClient(),
 			Applicator: resource.NewAPIPatchingApplicator(mgr.GetClient()),
-		}, namespace)),
+		}, namespace, l)),
 		WithNewPackageRevisionFn(nr),
 		WithParser(parser.New(metaScheme, objScheme)),
 		WithParserBackend(NewImageBackend(cache, nddpkg.NewK8sFetcher(clientset, namespace))),
@@ -293,10 +293,13 @@ func NewReconciler(mgr manager.Manager, opts ...ReconcilerOption) *Reconciler {
 }
 
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="apiextensions.k8s.io",resources=customresourcedefinitions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=locks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=meta.pkg.ndd.yndd.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations;mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 
@@ -397,6 +400,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	}
 
 	pkgMeta, _ := nddpkg.TryConvert(pkg.GetMeta()[0], &pkgmetav1.Provider{})
+	log.Debug("package meta", "pkgMeta", pkgMeta)
 
 	// Check status of package dependencies unless package specifies to skip
 	// resolution.

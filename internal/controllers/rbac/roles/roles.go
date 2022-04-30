@@ -42,6 +42,7 @@ const (
 	pluralConfigmaps        = "configmaps"
 	pluralSecrets           = "secrets"
 	pluralLeases            = "leases"
+	pluralServices          = "services"
 	pluralNetworkNodes      = "networknodes"
 	pluralNetworkNodeUsages = "networknodeusages"
 	pluralDeployments       = "deployments"
@@ -76,6 +77,11 @@ var rulesSystemExtra = []rbacv1.PolicyRule{
 	},
 	{
 		APIGroups: []string{"dvr.ndd.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"meta.pkg.ndd.yndd.io"},
 		Resources: []string{"*"},
 		Verbs:     verbsSystem,
 	},

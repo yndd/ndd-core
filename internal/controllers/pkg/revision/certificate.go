@@ -16,6 +16,7 @@ limitations under the License.
 
 package revision
 
+/*
 import (
 	"strings"
 
@@ -79,3 +80,4 @@ func buildProviderGnmiCertificate(provider *pkgmetav1.Provider, revision v1.Pack
 		},
 	}
 }
+*/

@@ -17,6 +17,8 @@ limitations under the License.
 package revision
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -29,29 +31,22 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/utils"
 )
 
-var (
-	replicas                 = int32(1)
-	runAsUser                = int64(2000)
-	runAsGroup               = int64(2000)
-	allowPrivilegeEscalation = false
-	privileged               = false
-	runAsNonRoot             = true
+const (
+	containerStartupCmd = "/manager"
+
+	userGroup = 2000
 )
 
-func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string) (*corev1.ServiceAccount, *appsv1.Deployment) { // nolint:interfacer,gocyclo
-
-	s := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            revision.GetName(),
-			Namespace:       namespace,
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
-		},
-	}
+func getPullPolicy(revision v1.PackageRevision) corev1.PullPolicy {
 	pullPolicy := corev1.PullIfNotPresent
 	if revision.GetPackagePullPolicy() != nil {
 		pullPolicy = *revision.GetPackagePullPolicy()
 	}
-	// environment parameters used in the deployment
+	return pullPolicy
+}
+
+func getEnv() []corev1.EnvVar {
+	// environment parameters used in the deployment/statefulset
 	envNameSpace := corev1.EnvVar{
 		Name: "POD_NAMESPACE",
 		ValueFrom: &corev1.EnvVarSource{
@@ -79,90 +74,119 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 			},
 		},
 	}
-	args := make([]string, 0)
-	if revision.GetAutoPilot() {
-		a := []string{
-			"start",
-			"--debug",
-			"--autopilot=true",
-		}
-		args = append(args, a...)
-	} else {
-		a := []string{
-			"start",
-			"--debug",
-			"--autopilot=false",
-		}
-		args = append(args, a...)
+	return []corev1.EnvVar{
+		envNameSpace,
+		envPodIP,
+		envPodName,
 	}
+}
 
-	argsProxy := []string{
+func getProxyArgs() []string {
+	return []string{
 		"--secure-listen-address=0.0.0.0:8443",
 		"--upstream=http://127.0.0.1:8080/",
 		"--logtostderr=true",
 		"--v=10",
 	}
+}
 
-	//metricLabelNameHttps := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "https"}, "-")
-	//profilerLabel := strings.Join([]string{"nddp-profile-svc", revision.GetName()}, "-")
+func getArgs(provider *pkgmetav1.Provider, revision v1.PackageRevision) []string {
+	args := []string{
+		"start",
+		"--debug",
+		fmt.Sprintf("--controller-config-name=%s", provider.GetName()),
+		fmt.Sprintf("--autopilot=%s", strconv.FormatBool(revision.GetAutoPilot())),
+	}
+	return args
+}
 
+func getContainers(provider *pkgmetav1.Provider, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string) []corev1.Container {
 	containers := []corev1.Container{}
-	containers = append(containers, corev1.Container{
+	containers = append(containers, getKubeProxyContainer())
+	containers = append(containers, getControllerContainer(provider, revision))
+
+	return containers
+}
+
+func getKubeProxyContainer() corev1.Container {
+	return corev1.Container{
 		Name:  "kube-rbac-proxy",
 		Image: "gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0",
-		Args:  argsProxy,
+		Args:  getProxyArgs(),
 		Ports: []corev1.ContainerPort{
 			{
 				ContainerPort: 8443,
 				Name:          "https",
 			},
 		},
-	})
-	containers = append(containers, corev1.Container{
-		Name:            "provider",
+	}
+}
+
+func getControllerContainer(provider *pkgmetav1.Provider, revision v1.PackageRevision) corev1.Container {
+	return corev1.Container{
+		Name:            "controller",
 		Image:           provider.Spec.Controller.Image,
-		ImagePullPolicy: pullPolicy,
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser:                &runAsUser,
-			RunAsGroup:               &runAsGroup,
-			AllowPrivilegeEscalation: &allowPrivilegeEscalation,
-			Privileged:               &privileged,
-			RunAsNonRoot:             &runAsNonRoot,
-		},
-		Args: args,
-		Env: []corev1.EnvVar{
-			envNameSpace,
-			envPodIP,
-			envPodName,
-		},
+		ImagePullPolicy: getPullPolicy(revision),
+		SecurityContext: getSecurityContext(),
+		Args:            getArgs(provider, revision),
+		Env:             getEnv(),
 		Command: []string{
-			"/manager",
+			containerStartupCmd,
 		},
+		VolumeMounts: getVolumeMounts(),
+	}
+}
 
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "profiledata",
-				MountPath: "/profiledata",
-			},
-			{
-				Name:      "webhookcert",
-				MountPath: "/tmp/k8s-webhook-server/serving-certs",
-				ReadOnly:  true,
-			},
-			{
-				Name:      "gnmicert",
-				MountPath: "/tmp/k8s-gnmi-server/serving-certs",
-				ReadOnly:  true,
+func getPodSecurityContext() *corev1.PodSecurityContext {
+	return &corev1.PodSecurityContext{
+		RunAsUser:    utils.Int64Ptr(userGroup),
+		RunAsGroup:   utils.Int64Ptr(userGroup),
+		RunAsNonRoot: utils.BoolPtr(true),
+	}
+}
+
+func getSecurityContext() *corev1.SecurityContext {
+	return &corev1.SecurityContext{
+		RunAsUser:                utils.Int64Ptr(userGroup),
+		RunAsGroup:               utils.Int64Ptr(userGroup),
+		AllowPrivilegeEscalation: utils.BoolPtr(false),
+		Privileged:               utils.BoolPtr(false),
+		RunAsNonRoot:             utils.BoolPtr(true),
+	}
+}
+
+func getVolumeMounts() []corev1.VolumeMount {
+	return []corev1.VolumeMount{
+		{
+			Name:      profilerKey,
+			MountPath: fmt.Sprintf("/%s", profilerKey),
+		},
+	}
+
+}
+
+func getVolumes() []corev1.Volume {
+	return []corev1.Volume{
+		{
+			Name: profilerKey,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
-	})
+	}
+}
 
-	webhookCertificateName := strings.Join([]string{revision.GetName(), "webhook", "serving-cert"}, "-")
-	webhookServiceName := strings.Join([]string{revision.GetName(), "webhook", "svc"}, "-")
-	gnmiCertificateName := strings.Join([]string{revision.GetName(), "gnmi", "serving-cert"}, "-")
-	gnmiServiceName := strings.Join([]string{revision.GetName(), "gnmi", "svc"}, "-")
-	metricHTTPSServiceName := strings.Join([]string{revision.GetName(), "metrichttps", "svc"}, "-")
-	profileServiceName := strings.Join([]string{revision.GetName(), "profiler", "svc"}, "-")
+func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string) (*corev1.ServiceAccount, *appsv1.Deployment) { // nolint:interfacer,gocyclo
+	s := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            revision.GetName(),
+			Namespace:       namespace,
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
+		},
+	}
+
+	profileServiceName := strings.Join([]string{provider.GetName(), profilerKey, serviceSuffix}, "-")
+	metricHTTPSServiceName := strings.Join([]string{provider.GetName(), metricsKey, serviceSuffix}, "-")
 	d := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            revision.GetName(),
@@ -170,15 +194,12 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
+			Replicas: utils.Int32Ptr(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"pkg.ndd.yndd.io/revision": revision.GetName(),
-					//pkgmetav1.LabelPkgMeta:     metricLabelNameHttps,
-					"metrichttps": metricHTTPSServiceName,
-					"profiler":    profileServiceName,
-					"webhook":     webhookServiceName,
-					"gnmi":        gnmiServiceName,
+					strings.Join([]string{packageNamespace, revisionKey}, "/"): revision.GetName(),
+					strings.Join([]string{packageNamespace, metricsKey}, "/"):  metricHTTPSServiceName,
+					strings.Join([]string{packageNamespace, profilerKey}, "/"): profileServiceName,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
@@ -186,49 +207,17 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 					Name:      provider.GetName(),
 					Namespace: namespace,
 					Labels: map[string]string{
-						"pkg.ndd.yndd.io/revision": revision.GetName(),
-						//pkgmetav1.LabelPkgMeta:     metricLabelNameHttps,
-						"metrichttps": metricHTTPSServiceName,
-						"profiler":    profileServiceName,
-						"webhook":     webhookServiceName,
-						"gnmi":        gnmiServiceName,
+						strings.Join([]string{packageNamespace, revisionKey}, "/"): revision.GetName(),
+						strings.Join([]string{packageNamespace, metricsKey}, "/"):  metricHTTPSServiceName,
+						strings.Join([]string{packageNamespace, profilerKey}, "/"): profileServiceName,
 					},
 				},
 				Spec: corev1.PodSpec{
-					SecurityContext: &corev1.PodSecurityContext{
-						RunAsNonRoot: &runAsNonRoot,
-						RunAsUser:    &runAsUser,
-						RunAsGroup:   &runAsGroup,
-					},
+					SecurityContext:    getPodSecurityContext(),
 					ServiceAccountName: s.GetName(),
 					ImagePullSecrets:   revision.GetPackagePullSecrets(),
-					Containers:         containers,
-					Volumes: []corev1.Volume{
-						{
-							Name: "profiledata",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
-						},
-						{
-							Name: "webhookcert",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName:  webhookCertificateName,
-									DefaultMode: utils.Int32Ptr(420),
-								},
-							},
-						},
-						{
-							Name: "gnmicert",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName:  gnmiCertificateName,
-									DefaultMode: utils.Int32Ptr(420),
-								},
-							},
-						},
-					},
+					Containers:         getContainers(provider, revision, cc, namespace),
+					Volumes:            getVolumes(),
 				},
 			},
 		},
@@ -360,7 +349,7 @@ func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.IntentRevisionGroupVersionKind))},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
+			Replicas: utils.Int32Ptr(0),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"pkg.ndd.yndd.io/revision": revision.GetName(),
@@ -379,11 +368,7 @@ func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision
 					},
 				},
 				Spec: corev1.PodSpec{
-					SecurityContext: &corev1.PodSecurityContext{
-						RunAsNonRoot: &runAsNonRoot,
-						RunAsUser:    &runAsUser,
-						RunAsGroup:   &runAsGroup,
-					},
+					SecurityContext:    getPodSecurityContext(),
 					ServiceAccountName: s.GetName(),
 					ImagePullSecrets:   revision.GetPackagePullSecrets(),
 					Containers: []corev1.Container{
@@ -402,14 +387,8 @@ func buildIntentDeployment(intent *pkgmetav1.Intent, revision v1.PackageRevision
 							Name:            "intent",
 							Image:           intent.Spec.Controller.Image,
 							ImagePullPolicy: pullPolicy,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser:                &runAsUser,
-								RunAsGroup:               &runAsGroup,
-								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
-								Privileged:               &privileged,
-								RunAsNonRoot:             &runAsNonRoot,
-							},
-							Args: args,
+							SecurityContext: getSecurityContext(),
+							Args:            args,
 							Env: []corev1.EnvVar{
 								envNameSpace,
 								envPodIP,

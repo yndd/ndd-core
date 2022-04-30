@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	parentLabel      = "pkg.ndd.yndd.io/pakage"
+	parentLabel      = "pkg.ndd.yndd.io/package"
 	reconcileTimeout = 1 * time.Minute
 
 	shortWait     = 30 * time.Second
@@ -256,7 +256,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		r.record.Event(p, event.Warning(reasonList, errors.Wrap(err, errListRevisions)))
 		return reconcile.Result{RequeueAfter: shortWait}, nil
 	}
-	log.Debug("Package Revision List", "PRL", prs)
+
+	for _, pr := range prs.GetRevisions() {
+		log.Debug("package revisions", "pr", pr)
+	}
 
 	// fetch the package from the container registry
 	revisionName, err := r.pkg.Revision(ctx, log, p)

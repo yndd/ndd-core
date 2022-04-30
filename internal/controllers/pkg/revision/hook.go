@@ -24,6 +24,7 @@ import (
 	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-core/internal/nddpkg"
 	nddv1 "github.com/yndd/ndd-runtime/apis/common/v1"
+	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-runtime/pkg/resource"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -78,6 +79,7 @@ type Hooks interface {
 type IntentHooks struct {
 	client    resource.ClientApplicator
 	namespace string
+	log       logging.Logger
 }
 
 // NewIntentHooks creates a new IntentHooks.
@@ -190,13 +192,15 @@ func (h *IntentHooks) getControllerConfig(ctx context.Context, pr v1.PackageRevi
 type ProviderHooks struct {
 	client    resource.ClientApplicator
 	namespace string
+	log       logging.Logger
 }
 
 // NewProviderHooks creates a new ProviderHooks.
-func NewProviderHooks(client resource.ClientApplicator, namespace string) *ProviderHooks {
+func NewProviderHooks(client resource.ClientApplicator, namespace string, l logging.Logger) *ProviderHooks {
 	return &ProviderHooks{
 		client:    client,
 		namespace: namespace,
+		log:       l,
 	}
 }
 
@@ -207,6 +211,13 @@ func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.Packa
 	pkgProvider, ok := po.(*pkgmetav1.Provider)
 	if !ok {
 		return errors.New(errNotProvider)
+	}
+
+	h.log.Debug("pkgProvider", "pkgProvider", pkgProvider)
+	// set the namepsace to the one of ndd-core -> ndd-system
+	pkgProvider.SetNamespace(h.namespace)
+	if err := h.client.Delete(ctx, pkgProvider); resource.IgnoreNotFound(err) != nil {
+		return errors.Wrap(err, "error delete metav1 provider")
 	}
 
 	// TBD updates
@@ -225,14 +236,16 @@ func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.Packa
 	if err != nil {
 		return errors.Wrap(err, errControllerConfig)
 	}
-	svc := buildProviderService(pkgProvider, pr, h.namespace)
-	if err := h.client.Delete(ctx, svc); resource.IgnoreNotFound(err) != nil {
-		return errors.Wrap(err, errDeleteProviderService)
-	}
-	svcProfile := buildProviderProfileService(pkgProvider, pr, h.namespace)
-	if err := h.client.Delete(ctx, svcProfile); err != nil {
-		return errors.Wrap(err, errDeleteProviderService)
-	}
+	/*
+		svc := buildProviderService(pkgProvider, pr, h.namespace)
+		if err := h.client.Delete(ctx, svc); resource.IgnoreNotFound(err) != nil {
+			return errors.Wrap(err, errDeleteProviderService)
+		}
+	*/
+	//svcProfile := buildProviderProfileService(pkgProvider, pr, h.namespace)
+	//if err := h.client.Delete(ctx, svcProfile); err != nil {
+	//	return errors.Wrap(err, errDeleteProviderService)
+	//}
 	/*
 		svcWebHook := buildProviderWebhookService(pkgProvider, pr, h.namespace)
 		if err := h.client.Delete(ctx, svcWebHook); err != nil {
@@ -269,6 +282,13 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 	if !ok {
 		return errors.New("not a provider package")
 	}
+
+	h.log.Debug("pkgProvider", "pkgProvider", pkgProvider)
+	pkgProvider.SetNamespace(h.namespace)
+	if err := h.client.Apply(ctx, pkgProvider); err != nil {
+		return errors.Wrap(err, "error create metav1 provider")
+	}
+
 	if pr.GetDesiredState() != v1.PackageRevisionActive {
 		return nil
 	}
@@ -276,27 +296,24 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 	if err != nil {
 		return errors.Wrap(err, errControllerConfig)
 	}
-	crds, err := h.getCrds(ctx, crdNames)
-	if err != nil {
-		return errors.Wrap(err, errGetCrd)
-	}
 	/*
-		for _, crd := range crds {
-			versions := []string{}
-			for _, v := range crd.Spec.Versions {
-				versions = append(versions, v.Name)
-			}
-			fmt.Printf("crd group: %s, versions: %v, singularName: %s, pluralName: %s \n", crd.Spec.Group, versions, crd.Spec.Names.Singular, crd.Spec.Names.Plural)
+		crds, err := h.getCrds(ctx, crdNames)
+		if err != nil {
+			return errors.Wrap(err, errGetCrd)
 		}
 	*/
-	svcGnmi := buildProviderService(pkgProvider, pr, h.namespace)
-	if err := h.client.Apply(ctx, svcGnmi); err != nil {
-		return errors.Wrap(err, errDeleteProviderService)
-	}
-	certGnmi := buildProviderGnmiCertificate(pkgProvider, pr, h.namespace)
-	if err := h.client.Apply(ctx, certGnmi); err != nil {
-		return errors.Wrap(err, errApplyProviderCertificate)
-	}
+	/*
+		svcGnmi := buildProviderService(pkgProvider, pr, h.namespace)
+		if err := h.client.Apply(ctx, svcGnmi); err != nil {
+			return errors.Wrap(err, errDeleteProviderService)
+		}
+	*/
+	/*
+		certGnmi := buildProviderGnmiCertificate(pkgProvider, pr, h.namespace)
+		if err := h.client.Apply(ctx, certGnmi); err != nil {
+			return errors.Wrap(err, errApplyProviderCertificate)
+		}
+	*/
 	svcMetricHttps := buildProviderMetricServiceHTTPS(pkgProvider, pr, h.namespace)
 	if err := h.client.Apply(ctx, svcMetricHttps); err != nil {
 		return errors.Wrap(err, errApplyProviderService)
@@ -305,24 +322,26 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 	if err := h.client.Apply(ctx, svcProfile); err != nil {
 		return errors.Wrap(err, errApplyProviderService)
 	}
-	if len(crds) == 1 {
-		svcWebHook := buildProviderWebhookService(pkgProvider, pr, h.namespace)
-		if err := h.client.Apply(ctx, svcWebHook); err != nil {
-			return errors.Wrap(err, errApplyProviderService)
+	/*
+		if len(crds) == 1 {
+			svcWebHook := buildProviderWebhookService(pkgProvider, pr, h.namespace)
+			if err := h.client.Apply(ctx, svcWebHook); err != nil {
+				return errors.Wrap(err, errApplyProviderService)
+			}
+			certWebHook := buildProviderWebhookCertificate(pkgProvider, pr, h.namespace)
+			if err := h.client.Apply(ctx, certWebHook); err != nil {
+				return errors.Wrap(err, errApplyProviderCertificate)
+			}
+			mutateWebHook := buildProviderWebhookMutate(pkgProvider, pr, h.namespace, crds[0])
+			if err := h.client.Apply(ctx, mutateWebHook); err != nil {
+				return errors.Wrap(err, errApplyProviderMutateWebhook)
+			}
+			validateWebHook := buildProviderWebhookValidate(pkgProvider, pr, h.namespace, crds[0])
+			if err := h.client.Apply(ctx, validateWebHook); err != nil {
+				return errors.Wrap(err, errApplyProviderValidateWebhook)
+			}
 		}
-		certWebHook := buildProviderWebhookCertificate(pkgProvider, pr, h.namespace)
-		if err := h.client.Apply(ctx, certWebHook); err != nil {
-			return errors.Wrap(err, errApplyProviderCertificate)
-		}
-		mutateWebHook := buildProviderWebhookMutate(pkgProvider, pr, h.namespace, crds[0])
-		if err := h.client.Apply(ctx, mutateWebHook); err != nil {
-			return errors.Wrap(err, errApplyProviderMutateWebhook)
-		}
-		validateWebHook := buildProviderWebhookValidate(pkgProvider, pr, h.namespace, crds[0])
-		if err := h.client.Apply(ctx, validateWebHook); err != nil {
-			return errors.Wrap(err, errApplyProviderValidateWebhook)
-		}
-	}
+	*/
 	s, d := buildProviderDeployment(pkgProvider, pr, cc, h.namespace)
 	if err := h.client.Apply(ctx, s); err != nil {
 		return errors.Wrap(err, errApplyProviderSA)
