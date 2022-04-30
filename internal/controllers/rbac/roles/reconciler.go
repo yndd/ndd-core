@@ -48,6 +48,7 @@ const (
 	//errprs
 	errGetPR               = "cannot get Package Revision"
 	errListCRDs            = "cannot list CustomResourceDefinitions"
+	errGetPkgMeta          = "cannot get package meta cr"
 	errApplyRole           = "cannot apply ClusterRole"
 	errValidatePermissions = "cannot validate permission requests"
 	errRejectedPermission  = "refusing to apply any RBAC roles due to request for disallowed permission"
@@ -298,6 +299,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		"uid", pr.GetUID(),
 		"version", pr.GetResourceVersion(),
 		"name", pr.GetName(),
+		"owner", pr.GetOwnerReferences(),
 	)
 
 	if meta.WasDeleted(pr) {
@@ -305,6 +307,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		// we created will be garbage collected by Kubernetes.
 		return reconcile.Result{Requeue: false}, nil
 	}
+
+	// get the controller config to operate
+	/*
+		if pr.GetKind() != pkgv1.IntentRevisionKind && len(pr.GetOwnerReferences()) != 0 {
+			log.Debug("provider kind")
+			pkgMeta := &pkgmetav1.Provider{}
+			if err := r.client.Get(ctx, types.NamespacedName{Namespace: os.Getenv("POD_NAMESPACE"), Name: pr.GetOwnerReferences()[0].Name}, pkgMeta); err != nil {
+				log.Debug(errGetPkgMeta, "error", err)
+				return reconcile.Result{Requeue: true}, errors.Wrap(err, errGetPkgMeta)
+			}
+			log.Debug("controller config", "config", pkgMeta.Spec)
+		}
+	*/
 
 	l := &extv1.CustomResourceDefinitionList{}
 	if err := r.client.List(ctx, l); err != nil {

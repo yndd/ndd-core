@@ -27,11 +27,7 @@ type ProviderSpec struct {
 	// Configuration for the packaged Provider's controller.
 	Controller ControllerSpec `json:"controller"`
 
-	Pods []PodSpec `json:"pods,omitempty"`
-
 	MetaSpec `json:",inline"`
-
-	Api []Api `json:"api,omitempty"`
 }
 
 type Api struct {
@@ -51,6 +47,10 @@ type ControllerSpec struct {
 	// permissions.
 	// +optional
 	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
+
+	Pods []PodSpec `json:"pods,omitempty"`
+
+	Apis []Api `json:"apis,omitempty"`
 }
 
 type DeploymentType string
@@ -66,13 +66,6 @@ type Extras struct {
 	Certificate bool   `json:"certificate,omitempty"`
 	Service     bool   `json:"service,omitempty"`
 	Volume      bool   `json:"volume,omitempty"`
-}
-
-type ContainerSpec struct {
-	// Name of the pod
-	Name string `json:"name"`
-	// Image is the Pod image used by the provider
-	Image string `json:"image"`
 }
 
 type PodSpec struct {

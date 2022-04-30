@@ -35,7 +35,7 @@ import (
 
 	"github.com/pkg/errors"
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
-	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
+	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -93,7 +93,7 @@ func WithCache(c nddpkg.Cache) ReconcilerOption {
 }
 
 // WithNewPackageRevisionFn determines the type of package being reconciled.
-func WithNewPackageRevisionFn(f func() v1.PackageRevision) ReconcilerOption {
+func WithNewPackageRevisionFn(f func() pkgv1.PackageRevision) ReconcilerOption {
 	return func(r *Reconciler) {
 		r.newPackageRevision = f
 	}
@@ -186,13 +186,13 @@ type Reconciler struct {
 	log       logging.Logger
 	record    event.Recorder
 
-	newPackageRevision func() v1.PackageRevision
+	newPackageRevision func() pkgv1.PackageRevision
 }
 
 // SetupProviderRevision adds a controller that reconciles ProviderRevisions.
 func SetupProviderRevision(mgr ctrl.Manager, l logging.Logger, cache nddpkg.Cache, namespace string) error {
-	name := "packages/" + strings.ToLower(v1.ProviderRevisionGroupKind)
-	nr := func() v1.PackageRevision { return &v1.ProviderRevision{} }
+	name := "packages/" + strings.ToLower(pkgv1.ProviderRevisionGroupKind)
+	nr := func() pkgv1.PackageRevision { return &pkgv1.ProviderRevision{} }
 
 	clientset, err := kubernetes.NewForConfig(mgr.GetConfig())
 	if err != nil {
@@ -225,14 +225,14 @@ func SetupProviderRevision(mgr ctrl.Manager, l logging.Logger, cache nddpkg.Cach
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&v1.ProviderRevision{}).
+		For(&pkgv1.ProviderRevision{}).
 		Complete(r)
 }
 
 // SetupIntentRevision adds a controller that reconciles IntentRevisions.
 func SetupIntentRevision(mgr ctrl.Manager, l logging.Logger, cache nddpkg.Cache, namespace string) error {
-	name := "packages/" + strings.ToLower(v1.IntentRevisionGroupKind)
-	nr := func() v1.PackageRevision { return &v1.IntentRevision{} }
+	name := "packages/" + strings.ToLower(pkgv1.IntentRevisionGroupKind)
+	nr := func() pkgv1.PackageRevision { return &pkgv1.IntentRevision{} }
 
 	clientset, err := kubernetes.NewForConfig(mgr.GetConfig())
 	if err != nil {
@@ -265,7 +265,7 @@ func SetupIntentRevision(mgr ctrl.Manager, l logging.Logger, cache nddpkg.Cache,
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&v1.IntentRevision{}).
+		For(&pkgv1.IntentRevision{}).
 		Complete(r)
 }
 
@@ -335,7 +335,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		// already removed self. If we skipped dependency resolution, we will
 		// not be present in the lock.
 		if err := r.lock.RemoveSelf(ctx, pr); err != nil {
-			pr.SetConditions(v1.Unhealthy())
+			pr.SetConditions(pkgv1.Unhealthy())
 			r.record.Event(pr, event.Warning(reasonLint, err))
 			return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 		}
@@ -366,7 +366,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		r.record.Event(pr, event.Warning(reasonParse, errors.Wrap(err, errInitParserBackend)))
 		// Requeue after shortWait because we may be waiting for parent package
 		// controller to recreate Pod.
-		pr.SetConditions(v1.Unhealthy())
+		pr.SetConditions(pkgv1.Unhealthy())
 		return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 	}
 
@@ -376,7 +376,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	if err != nil {
 		log.Debug(errParsePackage, "error", err)
 		r.record.Event(pr, event.Warning(reasonParse, errors.Wrap(err, errParsePackage)))
-		pr.SetConditions(v1.Unhealthy())
+		pr.SetConditions(pkgv1.Unhealthy())
 		return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 	}
 
@@ -386,7 +386,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		// NOTE: a failed lint typically will require manual
 		// intervention, but on the off chance that we read pod logs early,
 		// which caused a linting failure, we will requeue after long wait.
-		pr.SetConditions(v1.Unhealthy())
+		pr.SetConditions(pkgv1.Unhealthy())
 		return reconcile.Result{RequeueAfter: longWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 	}
 
@@ -395,7 +395,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	// here to avoid a potential panic on 0 index below.
 	if len(pkg.GetMeta()) != 1 {
 		r.record.Event(pr, event.Warning(reasonLint, errors.New(errNotOneMeta)))
-		pr.SetConditions(v1.Unhealthy())
+		pr.SetConditions(pkgv1.Unhealthy())
 		return reconcile.Result{RequeueAfter: longWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 	}
 
@@ -408,7 +408,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		found, installed, invalid, err := r.lock.Resolve(ctx, pkgMeta, pr)
 		pr.SetDependencyStatus(int64(found), int64(installed), int64(invalid))
 		if err != nil {
-			pr.SetConditions(v1.UnknownHealth())
+			pr.SetConditions(pkgv1.UnknownHealth())
 			r.record.Event(pr, event.Warning(reasonDependencies, err))
 			return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 		}
@@ -417,16 +417,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	if err := r.hook.Pre(ctx, pkgMeta, pr); err != nil {
 		log.Debug(errPreHook, "error", err)
 		r.record.Event(pr, event.Warning(reasonSync, errors.Wrap(err, errPreHook)))
-		pr.SetConditions(v1.Unhealthy())
+		pr.SetConditions(pkgv1.Unhealthy())
 		return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 	}
 
 	// Establish control or ownership of objects.
-	refs, err := r.objects.Establish(ctx, pkg.GetObjects(), pr, pr.GetDesiredState() == v1.PackageRevisionActive)
+	refs, err := r.objects.Establish(ctx, pkg.GetObjects(), pr, pr.GetDesiredState() == pkgv1.PackageRevisionActive)
 	if err != nil {
 		log.Debug(errEstablishControl, "error", err)
 		r.record.Event(pr, event.Warning(reasonSync, errors.Wrap(err, errEstablishControl)))
-		pr.SetConditions(v1.Unhealthy())
+		pr.SetConditions(pkgv1.Unhealthy())
 		return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 	}
 
@@ -445,11 +445,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	if err := r.hook.Post(ctx, pkgMeta, pr, crdNames); err != nil {
 		log.Debug(errPostHook, "error", err)
 		r.record.Event(pr, event.Warning(reasonSync, errors.Wrap(err, errPostHook)))
-		pr.SetConditions(v1.Unhealthy())
+		pr.SetConditions(pkgv1.Unhealthy())
 		return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 	}
 
 	r.record.Event(pr, event.Normal(reasonSync, "package revision successfully configured and healthy"))
-	pr.SetConditions(v1.Healthy())
+	pr.SetConditions(pkgv1.Healthy())
 	return reconcile.Result{RequeueAfter: longWait}, errors.Wrap(r.client.Status().Update(ctx, pr), errUpdateStatus)
 }

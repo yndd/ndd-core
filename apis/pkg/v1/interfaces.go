@@ -31,6 +31,10 @@ import (
 // revisions.
 type RevisionActivationPolicy string
 
+const (
+	PackageNamespace = "pkg.ndd.yndd.io"
+)
+
 var (
 	// AutomaticActivation indicates that package should automatically activate
 	// package revisions.

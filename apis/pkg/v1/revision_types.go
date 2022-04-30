@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
 	nddv1 "github.com/yndd/ndd-runtime/apis/common/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -99,4 +100,8 @@ type PackageRevisionStatus struct {
 	// controller needs these permissions to run. The RBAC manager is
 	// responsible for granting them.
 	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
+	// Api CRDs used by this package.
+	Apis []pkgmetav1.Api `json:"apis,omitempty"`
+	// Pods used by this package in the Controller
+	Pods []pkgmetav1.PodSpec `json:"pods,omitempty"`
 }

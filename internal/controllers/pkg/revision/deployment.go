@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
+	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-runtime/pkg/meta"
 	"github.com/yndd/ndd-runtime/pkg/utils"
@@ -94,7 +95,8 @@ func getArgs(provider *pkgmetav1.Provider, revision v1.PackageRevision) []string
 	args := []string{
 		"start",
 		"--debug",
-		fmt.Sprintf("--controller-config-name=%s", provider.GetName()),
+		fmt.Sprintf("--revision=%s", revision.GetName()),
+		fmt.Sprintf("--revision-namespace=%s", revision.GetNamespace()),
 		fmt.Sprintf("--autopilot=%s", strconv.FormatBool(revision.GetAutoPilot())),
 	}
 	return args
@@ -197,9 +199,9 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 			Replicas: utils.Int32Ptr(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					strings.Join([]string{packageNamespace, revisionKey}, "/"): revision.GetName(),
-					strings.Join([]string{packageNamespace, metricsKey}, "/"):  metricHTTPSServiceName,
-					strings.Join([]string{packageNamespace, profilerKey}, "/"): profileServiceName,
+					strings.Join([]string{pkgv1.PackageNamespace, revisionKey}, "/"): revision.GetName(),
+					strings.Join([]string{pkgv1.PackageNamespace, metricsKey}, "/"):  metricHTTPSServiceName,
+					strings.Join([]string{pkgv1.PackageNamespace, profilerKey}, "/"): profileServiceName,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
@@ -207,9 +209,9 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 					Name:      provider.GetName(),
 					Namespace: namespace,
 					Labels: map[string]string{
-						strings.Join([]string{packageNamespace, revisionKey}, "/"): revision.GetName(),
-						strings.Join([]string{packageNamespace, metricsKey}, "/"):  metricHTTPSServiceName,
-						strings.Join([]string{packageNamespace, profilerKey}, "/"): profileServiceName,
+						strings.Join([]string{pkgv1.PackageNamespace, revisionKey}, "/"): revision.GetName(),
+						strings.Join([]string{pkgv1.PackageNamespace, metricsKey}, "/"):  metricHTTPSServiceName,
+						strings.Join([]string{pkgv1.PackageNamespace, profilerKey}, "/"): profileServiceName,
 					},
 				},
 				Spec: corev1.PodSpec{

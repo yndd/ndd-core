@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
+	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-runtime/pkg/meta"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -33,10 +34,10 @@ const (
 	serviceSuffix = "svc"
 	certSuffix    = "serving-cert"
 
-	metricsKey       = "metrics"
-	profilerKey      = "profiler"
-	revisionKey      = "revision"
-	packageNamespace = "pkg.ndd.yndd.io"
+	metricsKey  = "metrics"
+	profilerKey = "profiler"
+	revisionKey = "revision"
+	//packageNamespace = "pkg.ndd.yndd.io"
 )
 
 func buildIntentService(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
@@ -177,7 +178,7 @@ func buildProviderMetricServiceHTTPS(provider *pkgmetav1.Provider, revision v1.P
 			Name:      metricHTTPSServiceName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				strings.Join([]string{packageNamespace, metricsKey}, "/"): metricHTTPSServiceName,
+				strings.Join([]string{pkgv1.PackageNamespace, metricsKey}, "/"): metricHTTPSServiceName,
 			},
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
 		},
@@ -204,7 +205,7 @@ func buildProviderProfileService(provider *pkgmetav1.Provider, revision v1.Packa
 			Name:      profileServiceName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				strings.Join([]string{packageNamespace, profilerKey}, "/"): profileServiceName,
+				strings.Join([]string{pkgv1.PackageNamespace, profilerKey}, "/"): profileServiceName,
 			},
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
 		},

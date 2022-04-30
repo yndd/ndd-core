@@ -54,6 +54,14 @@ var (
 	verbsSystem = []string{"get", "list", "watch", "update", "patch", "create", "delete"}
 )
 
+var rulesSystemExtraNew = []rbacv1.PolicyRule{
+	{
+		APIGroups: []string{"coordination/v1"},
+		Resources: []string{pluralSecrets, pluralConfigmaps, pluralEvents, pluralLeases},
+		Verbs:     verbsSystem,
+	},
+}
+
 // * Secrets for provider credentials and connection secrets.
 // * ConfigMaps for leader election.
 // * Leases for leader election.
@@ -252,7 +260,7 @@ func RenderClusterRoles(pr *v1.PackageRevision, crds []extv1.CustomResourceDefin
 		// Provider revision
 		system = &rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{Name: SystemClusterProviderRoleName((*pr).GetRevName())},
-			Rules:      append(append(withVerbs(rules, verbsSystem), rulesSystemExtra...), (*pr).GetPermissionsRequests()...),
+			Rules:      append(append(withVerbs(rules, verbsSystem), rulesSystemExtraNew...), (*pr).GetPermissionsRequests()...),
 		}
 	}
 

@@ -213,20 +213,24 @@ func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.Packa
 		return errors.New(errNotProvider)
 	}
 
-	h.log.Debug("pkgProvider", "pkgProvider", pkgProvider)
-	// set the namepsace to the one of ndd-core -> ndd-system
-	pkgProvider.SetNamespace(h.namespace)
-	if err := h.client.Delete(ctx, pkgProvider); resource.IgnoreNotFound(err) != nil {
-		return errors.Wrap(err, "error delete metav1 provider")
-	}
+	/*
+		h.log.Debug("pkgProvider", "pkgProvider", pkgProvider)
+		// set the namepsace to the one of ndd-core -> ndd-system
+		pkgProvider.SetNamespace(h.namespace)
+		if err := h.client.Delete(ctx, pkgProvider); resource.IgnoreNotFound(err) != nil {
+			return errors.Wrap(err, "error delete metav1 provider")
+		}
+	*/
 
 	// TBD updates
-	_, ok = pr.(*v1.ProviderRevision)
+	provRev, ok := pr.(*v1.ProviderRevision)
 	if !ok {
 		return errors.New(errNotProviderRevision)
 	}
 
-	//provRev.Status.PermissionRequests = pkgProvider.Spec.Controller.PermissionRequests
+	provRev.Status.PermissionRequests = pkgProvider.Spec.Controller.PermissionRequests
+	provRev.Status.Apis = pkgProvider.Spec.Controller.Apis
+	provRev.Status.Pods = pkgProvider.Spec.Controller.Pods
 
 	// Do not clean up SA and controller if revision is not inactive.
 	if pr.GetDesiredState() != v1.PackageRevisionInactive {
@@ -283,11 +287,13 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 		return errors.New("not a provider package")
 	}
 
-	h.log.Debug("pkgProvider", "pkgProvider", pkgProvider)
-	pkgProvider.SetNamespace(h.namespace)
-	if err := h.client.Apply(ctx, pkgProvider); err != nil {
-		return errors.Wrap(err, "error create metav1 provider")
-	}
+	/*
+		h.log.Debug("pkgProvider", "pkgProvider", pkgProvider)
+		pkgProvider.SetNamespace(h.namespace)
+		if err := h.client.Apply(ctx, pkgProvider); err != nil {
+			return errors.Wrap(err, "error create metav1 provider")
+		}
+	*/
 
 	if pr.GetDesiredState() != v1.PackageRevisionActive {
 		return nil
