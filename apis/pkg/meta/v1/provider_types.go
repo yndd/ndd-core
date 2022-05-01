@@ -87,13 +87,13 @@ type PodSpec struct {
 	// +optional
 	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
 
-	// Container identifies the containers in the pod
+	// Containers identifies the containers in the pod
 	Containers []ContainerSpec `json:"containers,omitempty"`
 }
 
 type ContainerSpec struct {
 	// Provide the container info
-	Container corev1.Container `json:",inline"`
+	Container *corev1.Container `json:"container,omitempty"`
 
 	// Extras is certificates, volumes, webhook, etc
 	Extras []Extras `json:"extras,omitempty"`
