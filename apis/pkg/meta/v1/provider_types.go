@@ -105,6 +105,9 @@ type Extras struct {
 	Certificate bool   `json:"certificate,omitempty"`
 	Service     bool   `json:"service,omitempty"`
 	Volume      bool   `json:"volume,omitempty"`
+	Port        uint32 `json:"port,omitempty"`
+	TargetPort  uint32 `json:"target-port,omitempty"`
+	Protocol    string `json:"protocol,omitempty"`
 }
 
 // +kubebuilder:object:root=true
