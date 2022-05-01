@@ -17,7 +17,7 @@ limitations under the License.
 package v1
 
 import (
-	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
+	//pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
 	nddv1 "github.com/yndd/ndd-runtime/apis/common/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"

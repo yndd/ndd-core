@@ -303,7 +303,6 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 		if resource.IgnoreNotFound(err) != nil {
 			return errors.Wrap(err, "error get metav1 provider")
 		}
-		h.log.Debug("pkgProvider", "pkgProvider", pkgProvider)
 		pkgprov := buildProviderPackage(pkgProvider, pr, h.namespace)
 		if err := h.client.Apply(ctx, pkgprov); err != nil {
 			return errors.Wrap(err, "error create metav1 provider")
@@ -319,6 +318,7 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 			}
 		}
 	}
+	h.log.Debug("pkgProvider", "pkgMeta", pkgMeta.Spec)
 
 	/*
 		crds, err := h.getCrds(ctx, crdNames)
