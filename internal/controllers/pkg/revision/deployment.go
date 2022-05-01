@@ -97,6 +97,7 @@ func getArgs(provider *pkgmetav1.Provider, revision v1.PackageRevision) []string
 		"--debug",
 		fmt.Sprintf("--revision=%s", revision.GetName()),
 		fmt.Sprintf("--revision-namespace=%s", revision.GetNamespace()),
+		fmt.Sprintf("--controller-config-name=%s", provider.GetName()),
 		fmt.Sprintf("--autopilot=%s", strconv.FormatBool(revision.GetAutoPilot())),
 	}
 	return args

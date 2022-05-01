@@ -17,6 +17,7 @@ limitations under the License.
 package roles
 
 import (
+	"fmt"
 	"sort"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -59,6 +60,16 @@ var rulesSystemExtraNew = []rbacv1.PolicyRule{
 		APIGroups: []string{"coordination/v1"},
 		Resources: []string{pluralSecrets, pluralConfigmaps, pluralEvents, pluralLeases},
 		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"meta.pkg.ndd.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsSystem,
+	},
+	{
+		APIGroups: []string{"pkg.ndd.yndd.io"},
+		Resources: []string{"*"},
+		Verbs:     verbsView,
 	},
 }
 
@@ -246,6 +257,8 @@ func RenderClusterRoles(pr *v1.PackageRevision, crds []extv1.CustomResourceDefin
 		})
 	}
 
+	//fmt.Printf("rules: %v\n", rules)
+
 	// The 'system' RBAC role does not aggregate; it is intended to be bound
 	// directly to the service account that the provider/intent runs as.
 	var system *rbacv1.ClusterRole
@@ -258,6 +271,17 @@ func RenderClusterRoles(pr *v1.PackageRevision, crds []extv1.CustomResourceDefin
 		}
 	default:
 		// Provider revision
+		/*
+			pmrs := []rbacv1.PolicyRule{}
+			for _, pmr := range (*pr).GetPermissionsRequests() {
+				if len(resources) == 0 {
+					pmr.Resources = []string{"*"}
+				}
+				pmrs = append(pmrs, pmr)
+			}
+		*/
+
+		fmt.Printf("pmrs: %v\n", (*pr).GetPermissionsRequests())
 		system = &rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{Name: SystemClusterProviderRoleName((*pr).GetRevName())},
 			Rules:      append(append(withVerbs(rules, verbsSystem), rulesSystemExtraNew...), (*pr).GetPermissionsRequests()...),

@@ -101,7 +101,7 @@ type PackageRevisionStatus struct {
 	// responsible for granting them.
 	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
 	// Api CRDs used by this package.
-	Apis []pkgmetav1.Api `json:"apis,omitempty"`
+	//Apis []pkgmetav1.Api `json:"apis,omitempty"`
 	// Pods used by this package in the Controller
-	Pods []pkgmetav1.PodSpec `json:"pods,omitempty"`
+	//Pods []pkgmetav1.PodSpec `json:"pods,omitempty"`
 }

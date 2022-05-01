@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
+	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-runtime/pkg/event"
 	"github.com/yndd/ndd-runtime/pkg/logging"
@@ -339,29 +340,45 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		}
 	}
 
-	rejected, err := r.rbac.ValidatePermissionRequests(ctx, pr.GetPermissionsRequests()...)
-	if err != nil {
-		log.Debug(errValidatePermissions, "error", err)
-		r.record.Event(pr, event.Warning(reasonApplyRoles, errors.Wrap(err, errValidatePermissions)))
-		return reconcile.Result{RequeueAfter: shortWait}, nil
-	}
+	// TODO validate permission request handling
+	/*
+		rejected, err := r.rbac.ValidatePermissionRequests(ctx, pr.GetPermissionsRequests()...)
+		if err != nil {
+			log.Debug(errValidatePermissions, "error", err)
+			r.record.Event(pr, event.Warning(reasonApplyRoles, errors.Wrap(err, errValidatePermissions)))
+			return reconcile.Result{RequeueAfter: shortWait}, nil
+		}
 
-	for _, rule := range rejected {
-		log.Debug(errRejectedPermission, "rule", rule)
-		r.record.Event(pr, event.Warning(reasonApplyRoles, errors.Errorf("%s %s", errRejectedPermission, rule)))
-	}
+		for _, rule := range rejected {
+			log.Debug(errRejectedPermission, "rule", rule)
+			r.record.Event(pr, event.Warning(reasonApplyRoles, errors.Errorf("%s %s", errRejectedPermission, rule)))
+		}
 
-	// We return early and don't grant _any_ RBAC permissions if we would reject
-	// any requested permission. It's better for the provider to be completely
-	// and obviously broken than for it to be subtly broken in a way that may
-	// not surface immediately, i.e. due to missing an RBAC permission it only
-	// occasionally needs. There's no need to requeue - the revisions requests
-	// won't change, and we're watching the ClusterRole of allowed requests.
-	if len(rejected) > 0 {
-		return reconcile.Result{Requeue: false}, nil
+		// We return early and don't grant _any_ RBAC permissions if we would reject
+		// any requested permission. It's better for the provider to be completely
+		// and obviously broken than for it to be subtly broken in a way that may
+		// not surface immediately, i.e. due to missing an RBAC permission it only
+		// occasionally needs. There's no need to requeue - the revisions requests
+		// won't change, and we're watching the ClusterRole of allowed requests.
+		if len(rejected) > 0 {
+			return reconcile.Result{Requeue: false}, nil
+		}
+	*/
+
+	if pr.GetKind() == pkgv1.ProviderRevisionKind {
+		log.Debug("permission requests1", "pr", pr.GetPermissionsRequests())
+		provRev, _ := pr.(*pkgv1.ProviderRevision)
+		log.Debug("permission requests2", "pr", provRev.Status.PermissionRequests)
+
+		for _, prr := range pr.GetPermissionsRequests() {
+			if len(prr.Resources) == 0 {
+				log.Debug("permission requests3", "pr", provRev.Status.PermissionRequests)
+			}
+		}
 	}
 
 	for _, cr := range r.rbac.RenderClusterRoles(&pr, crds) {
+		log.Debug("clusterrole", "cr", cr)
 		cr := cr // Pin range variable so we can take its address.
 		log = log.WithValues("role-name", cr.GetName())
 		err := r.client.Apply(ctx, &cr, resource.MustBeControllableBy(pr.GetUID()), resource.AllowUpdateIf(ClusterRolesDiffer))

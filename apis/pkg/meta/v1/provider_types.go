@@ -22,19 +22,32 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type ControllerType string
+
+const (
+	ControllerTypeController ControllerType = "controller"
+	ControllerTypeIntent     ControllerType = "intent"
+)
+
 // ProviderSpec specifies the configuration of a Provider.
 type ProviderSpec struct {
+	// Type is the type of provider
+	// +kubebuilder:default=controller
+	Type ControllerType `json:"type,omitempty"`
+
 	// Configuration for the packaged Provider's controller.
 	Controller ControllerSpec `json:"controller"`
 
 	MetaSpec `json:",inline"`
 }
 
+/*
 type Api struct {
 	Group   string `json:"group"`
 	Version string `json:"version"`
 	Kind    string `json:"kind"`
 }
+*/
 
 // ControllerSpec specifies the configuration for the packaged Provider
 // controller.
@@ -50,7 +63,7 @@ type ControllerSpec struct {
 
 	Pods []PodSpec `json:"pods,omitempty"`
 
-	Apis []Api `json:"apis,omitempty"`
+	//Apis []Api `json:"apis,omitempty"`
 }
 
 type DeploymentType string
@@ -59,14 +72,6 @@ const (
 	DeploymentTypeStatefulset DeploymentType = "statefulset"
 	DeploymentTypeDeployment  DeploymentType = "deployment"
 )
-
-type Extras struct {
-	Name        string `json:"name"`
-	Webhook     bool   `json:"webhook,omitempty"`
-	Certificate bool   `json:"certificate,omitempty"`
-	Service     bool   `json:"service,omitempty"`
-	Volume      bool   `json:"volume,omitempty"`
-}
 
 type PodSpec struct {
 	// Name of the pod
@@ -82,11 +87,24 @@ type PodSpec struct {
 	// +optional
 	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
 
+	// Container identifies the containers in the pod
+	Containers []ContainerSpec `json:"containers,omitempty"`
+}
+
+type ContainerSpec struct {
+	// Provide the container info
+	Container corev1.Container `json:",inline"`
+
 	// Extras is certificates, volumes, webhook, etc
 	Extras []Extras `json:"extras,omitempty"`
+}
 
-	// Container identifies the containers in the pod
-	Containers []corev1.Container `json:"containers,omitempty"`
+type Extras struct {
+	Name        string `json:"name"`
+	Webhook     bool   `json:"webhook,omitempty"`
+	Certificate bool   `json:"certificate,omitempty"`
+	Service     bool   `json:"service,omitempty"`
+	Volume      bool   `json:"volume,omitempty"`
 }
 
 // +kubebuilder:object:root=true

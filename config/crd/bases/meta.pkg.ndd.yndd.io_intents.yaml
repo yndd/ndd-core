@@ -39,21 +39,6 @@ spec:
               controller:
                 description: Configuration for the packaged Intent's controller.
                 properties:
-                  apis:
-                    items:
-                      properties:
-                        group:
-                          type: string
-                        kind:
-                          type: string
-                        version:
-                          type: string
-                      required:
-                      - group
-                      - kind
-                      - version
-                      type: object
-                    type: array
                   image:
                     description: Image is the packaged Provider controller image.
                     type: string
@@ -117,8 +102,6 @@ spec:
                           description: Container identifies the containers in the
                             pod
                           items:
-                            description: A single application container that you want
-                              to run within a pod.
                             properties:
                               args:
                                 description: 'Arguments to the entrypoint. The docker
@@ -317,6 +300,25 @@ spec:
                                             must be defined
                                           type: boolean
                                       type: object
+                                  type: object
+                                type: array
+                              extras:
+                                description: Extras is certificates, volumes, webhook,
+                                  etc
+                                items:
+                                  properties:
+                                    certificate:
+                                      type: boolean
+                                    name:
+                                      type: string
+                                    service:
+                                      type: boolean
+                                    volume:
+                                      type: boolean
+                                    webhook:
+                                      type: boolean
+                                  required:
+                                  - name
                                   type: object
                                 type: array
                               image:
@@ -1435,24 +1437,6 @@ spec:
                                   be used, which might be configured in the container
                                   image. Cannot be updated.
                                 type: string
-                            required:
-                            - name
-                            type: object
-                          type: array
-                        extras:
-                          description: Extras is certificates, volumes, webhook, etc
-                          items:
-                            properties:
-                              certificate:
-                                type: boolean
-                              name:
-                                type: string
-                              service:
-                                type: boolean
-                              volume:
-                                type: boolean
-                              webhook:
-                                type: boolean
                             required:
                             - name
                             type: object

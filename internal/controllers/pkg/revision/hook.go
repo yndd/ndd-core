@@ -213,15 +213,6 @@ func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.Packa
 		return errors.New(errNotProvider)
 	}
 
-	/*
-		h.log.Debug("pkgProvider", "pkgProvider", pkgProvider)
-		// set the namepsace to the one of ndd-core -> ndd-system
-		pkgProvider.SetNamespace(h.namespace)
-		if err := h.client.Delete(ctx, pkgProvider); resource.IgnoreNotFound(err) != nil {
-			return errors.Wrap(err, "error delete metav1 provider")
-		}
-	*/
-
 	// TBD updates
 	provRev, ok := pr.(*v1.ProviderRevision)
 	if !ok {
@@ -229,8 +220,8 @@ func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.Packa
 	}
 
 	provRev.Status.PermissionRequests = pkgProvider.Spec.Controller.PermissionRequests
-	provRev.Status.Apis = pkgProvider.Spec.Controller.Apis
-	provRev.Status.Pods = pkgProvider.Spec.Controller.Pods
+	//provRev.Status.Apis = pkgProvider.Spec.Controller.Apis
+	//provRev.Status.Pods = pkgProvider.Spec.Controller.Pods
 
 	// Do not clean up SA and controller if revision is not inactive.
 	if pr.GetDesiredState() != v1.PackageRevisionInactive {
@@ -240,6 +231,15 @@ func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.Packa
 	if err != nil {
 		return errors.Wrap(err, errControllerConfig)
 	}
+	// We do not have o delete the package since it has a common name; it will be deleted because the owner reference deals with that
+	/*
+		h.log.Debug("pkgProvide deleter", "pkgProvider", pkgProvider, "desired statis", pr.GetDesiredState())
+		// set the namepsace to the one of ndd-core -> ndd-system
+		pkgProvider.SetNamespace(h.namespace)
+		if err := h.client.Delete(ctx, pkgProvider); resource.IgnoreNotFound(err) != nil {
+			return errors.Wrap(err, "error delete metav1 provider")
+		}
+	*/
 	/*
 		svc := buildProviderService(pkgProvider, pr, h.namespace)
 		if err := h.client.Delete(ctx, svc); resource.IgnoreNotFound(err) != nil {
@@ -287,14 +287,7 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 		return errors.New("not a provider package")
 	}
 
-	/*
-		h.log.Debug("pkgProvider", "pkgProvider", pkgProvider)
-		pkgProvider.SetNamespace(h.namespace)
-		if err := h.client.Apply(ctx, pkgProvider); err != nil {
-			return errors.Wrap(err, "error create metav1 provider")
-		}
-	*/
-
+	// return if the desired status is not active
 	if pr.GetDesiredState() != v1.PackageRevisionActive {
 		return nil
 	}
@@ -302,6 +295,31 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 	if err != nil {
 		return errors.Wrap(err, errControllerConfig)
 	}
+
+	// only create when not found, since we want to allow human or automated pipelines to update the CR
+	// we just create it
+	pkgMeta := &pkgmetav1.Provider{}
+	if err := h.client.Get(ctx, types.NamespacedName{Namespace: h.namespace, Name: pkgProvider.GetName()}, pkgMeta); err != nil {
+		if resource.IgnoreNotFound(err) != nil {
+			return errors.Wrap(err, "error get metav1 provider")
+		}
+		h.log.Debug("pkgProvider", "pkgProvider", pkgProvider)
+		pkgprov := buildProviderPackage(pkgProvider, pr, h.namespace)
+		if err := h.client.Apply(ctx, pkgprov); err != nil {
+			return errors.Wrap(err, "error create metav1 provider")
+		}
+	} else {
+		// check the owner reference and if it differs we update it
+		for _, ref := range pkgMeta.GetOwnerReferences() {
+			if ref.UID != pr.GetUID() {
+				pkgprov := buildProviderPackage(pkgProvider, pr, h.namespace)
+				if err := h.client.Apply(ctx, pkgprov); err != nil {
+					return errors.Wrap(err, "error create metav1 provider")
+				}
+			}
+		}
+	}
+
 	/*
 		crds, err := h.getCrds(ctx, crdNames)
 		if err != nil {
