@@ -93,7 +93,8 @@ type ControllerConfig struct {
 	Spec ControllerConfigSpec `json:"spec"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 
 // A ControllerConfigList is the description of a Ndd Provider package.
 type ControllerConfigList struct {
@@ -106,7 +107,7 @@ func init() {
 	SchemeBuilder.Register(&Provider{}, &ProviderList{})
 }
 
-// Intent type metadata.
+// ControllerConfig type metadata.
 var (
 	ControllerConfigKind             = reflect.TypeOf(ControllerConfig{}).Name()
 	ControllerConfigGroupKind        = schema.GroupKind{Group: Group, Kind: ControllerConfigKind}.String()

@@ -13,6 +13,7 @@ resources:
 - bases/dvr.ndd.yndd.io_devicedrivers.yaml
 - bases/meta.pkg.ndd.yndd.io_providers.yaml
 - bases/meta.pkg.ndd.yndd.io_intents.yaml
+- bases/meta.pkg.ndd.yndd.io_controllerconfigs.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 #patchesStrategicMerge:

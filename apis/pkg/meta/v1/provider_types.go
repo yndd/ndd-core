@@ -70,7 +70,8 @@ type Provider struct {
 	Spec ProviderSpec `json:"spec"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 
 // A ProviderList is the description of a Ndd Provider package.
 type ProviderList struct {
