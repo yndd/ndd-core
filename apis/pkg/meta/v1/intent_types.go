@@ -17,7 +17,10 @@ limitations under the License.
 package v1
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
@@ -57,3 +60,11 @@ func (p *Intent) Hub() {}
 func init() {
 	SchemeBuilder.Register(&Intent{})
 }
+
+// Intent type metadata.
+var (
+	IntentKind             = reflect.TypeOf(Intent{}).Name()
+	IntentGroupKind        = schema.GroupKind{Group: Group, Kind: IntentKind}.String()
+	IntentKindAPIVersion   = IntentKind + "." + GroupVersion.String()
+	IntentGroupVersionKind = GroupVersion.WithKind(IntentKind)
+)

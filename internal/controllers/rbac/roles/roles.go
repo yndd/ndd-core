@@ -44,9 +44,13 @@ const (
 	pluralSecrets           = "secrets"
 	pluralLeases            = "leases"
 	pluralServices          = "services"
+	pluralServiceAccounts   = "serviceaccounts"
 	pluralNetworkNodes      = "networknodes"
 	pluralNetworkNodeUsages = "networknodeusages"
 	pluralDeployments       = "deployments"
+	pluralStatefulsets      = "statefulsets"
+	pluralPods              = "pods"
+	pluralCrds              = "customresourcedefinitions"
 )
 
 var (
@@ -57,19 +61,55 @@ var (
 
 var rulesSystemExtraNew = []rbacv1.PolicyRule{
 	{
+		APIGroups: []string{"*"},
+		Resources: []string{pluralPods},
+		Verbs:     verbsView,
+	},
+	{
+		APIGroups: []string{"*"},
+		Resources: []string{pluralServices, pluralServiceAccounts},
+		Verbs:     verbsEdit,
+	},
+	{
+
+		APIGroups: []string{"rbac.authorization.k8s.io"},
+		Resources: []string{"clusterroles", "clusterrolebindings"},
+		Verbs:     verbsEdit,
+	},
+	{
 		APIGroups: []string{"coordination/v1"},
 		Resources: []string{pluralSecrets, pluralConfigmaps, pluralEvents, pluralLeases},
-		Verbs:     verbsSystem,
+		Verbs:     verbsEdit,
+	},
+	{
+		APIGroups: []string{"apps"},
+		Resources: []string{pluralDeployments, pluralStatefulsets},
+		Verbs:     verbsEdit,
+	},
+	{
+		APIGroups: []string{"apiextensions.k8s.io"},
+		Resources: []string{pluralCrds},
+		Verbs:     verbsView,
 	},
 	{
 		APIGroups: []string{"meta.pkg.ndd.yndd.io"},
-		Resources: []string{"*"},
-		Verbs:     verbsSystem,
+		Resources: []string{"providers"},
+		Verbs:     verbsEdit,
 	},
 	{
 		APIGroups: []string{"pkg.ndd.yndd.io"},
-		Resources: []string{"*"},
+		Resources: []string{"providerrevisions", "providers"},
 		Verbs:     verbsView,
+	},
+	{
+		APIGroups: []string{"cert-manager.io"},
+		Resources: []string{"certificates"},
+		Verbs:     verbsEdit,
+	},
+	{
+		APIGroups: []string{"admissionregistration.k8s.io"},
+		Resources: []string{"mutatingwebhookconfigurations", "validatingwebhookconfigurations"},
+		Verbs:     verbsEdit,
 	},
 }
 

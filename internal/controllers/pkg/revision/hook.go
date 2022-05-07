@@ -68,7 +68,7 @@ const (
 // A Hooks performs operations before and after a revision establishes objects.
 type Hooks interface {
 	// Pre performs operations meant to happen before establishing objects.
-	Pre(context.Context, runtime.Object, v1.PackageRevision) error
+	Pre(context.Context, runtime.Object, v1.PackageRevision, []string) error
 
 	// Post performs operations meant to happen after establishing objects.
 	Post(context.Context, runtime.Object, v1.PackageRevision, []string) error
@@ -92,7 +92,7 @@ func NewIntentHooks(client resource.ClientApplicator, namespace string) *IntentH
 
 // Pre cleans up a packaged controller and service account if the revision is
 // inactive.
-func (h *IntentHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision) error {
+func (h *IntentHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision, crdNames []string) error {
 	po, _ := nddpkg.TryConvert(pkg, &pkgmetav1.Intent{})
 	pkgIntent, ok := po.(*pkgmetav1.Intent)
 	if !ok {
@@ -206,7 +206,7 @@ func NewProviderHooks(client resource.ClientApplicator, namespace string, l logg
 
 // Pre cleans up a packaged controller and service account if the revision is
 // inactive.
-func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision) error {
+func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision, crdNames []string) error {
 	po, _ := nddpkg.TryConvert(pkg, &pkgmetav1.Provider{})
 	pkgProvider, ok := po.(*pkgmetav1.Provider)
 	if !ok {
@@ -268,7 +268,7 @@ func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.Packa
 			return errors.Wrap(err, errDeleteProviderValidateWebhook)
 		}
 	*/
-	s, d := buildProviderDeployment(pkgProvider, pr, cc, h.namespace)
+	s, d := buildProviderDeployment(pkgProvider, pr, cc, h.namespace, []string{})
 	if err := h.client.Delete(ctx, d); resource.IgnoreNotFound(err) != nil {
 		return errors.Wrap(err, errDeleteProviderDeployment)
 	}
@@ -296,29 +296,31 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 		return errors.Wrap(err, errControllerConfig)
 	}
 
-	// only create when not found, since we want to allow human or automated pipelines to update the CR
-	// we just create it
-	pkgMeta := &pkgmetav1.Provider{}
-	if err := h.client.Get(ctx, types.NamespacedName{Namespace: h.namespace, Name: pkgProvider.GetName()}, pkgMeta); err != nil {
-		if resource.IgnoreNotFound(err) != nil {
-			return errors.Wrap(err, "error get metav1 provider")
-		}
-		pkgprov := buildProviderPackage(pkgProvider, pr, h.namespace)
-		h.log.Debug("pkgProvider", "pkgMeta", pkgprov.Spec.Controller)
-		if err := h.client.Apply(ctx, pkgprov); err != nil {
-			return errors.Wrap(err, "error create metav1 provider")
-		}
-	} else {
-		// check the owner reference and if it differs we update it
-		for _, ref := range pkgMeta.GetOwnerReferences() {
-			if ref.UID != pr.GetUID() {
-				pkgprov := buildProviderPackage(pkgProvider, pr, h.namespace)
-				if err := h.client.Apply(ctx, pkgprov); err != nil {
-					return errors.Wrap(err, "error create metav1 provider")
+	/*
+		// only create when not found, since we want to allow human or automated pipelines to update the CR
+		// we just create it
+		pkgMeta := &pkgmetav1.Provider{}
+		if err := h.client.Get(ctx, types.NamespacedName{Namespace: h.namespace, Name: pkgProvider.GetName()}, pkgMeta); err != nil {
+			if resource.IgnoreNotFound(err) != nil {
+				return errors.Wrap(err, "error get metav1 provider")
+			}
+			pkgprov := buildProviderPackage(pkgProvider, pr, h.namespace)
+			h.log.Debug("pkgProvider", "pkgMeta", pkgprov.Spec.Controller)
+			if err := h.client.Apply(ctx, pkgprov); err != nil {
+				return errors.Wrap(err, "error create metav1 provider")
+			}
+		} else {
+			// check the owner reference and if it differs we update it
+			for _, ref := range pkgMeta.GetOwnerReferences() {
+				if ref.UID != pr.GetUID() {
+					pkgprov := buildProviderPackage(pkgProvider, pr, h.namespace)
+					if err := h.client.Apply(ctx, pkgprov); err != nil {
+						return errors.Wrap(err, "error create metav1 provider")
+					}
 				}
 			}
 		}
-	}
+	*/
 
 	/*
 		crds, err := h.getCrds(ctx, crdNames)
@@ -366,7 +368,7 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.Pack
 			}
 		}
 	*/
-	s, d := buildProviderDeployment(pkgProvider, pr, cc, h.namespace)
+	s, d := buildProviderDeployment(pkgProvider, pr, cc, h.namespace, crdNames)
 	if err := h.client.Apply(ctx, s); err != nil {
 		return errors.Wrap(err, errApplyProviderSA)
 	}
@@ -418,7 +420,7 @@ func NewNopHooks() *NopHooks {
 }
 
 // Pre does nothing and returns nil.
-func (h *NopHooks) Pre(context.Context, runtime.Object, v1.PackageRevision) error {
+func (h *NopHooks) Pre(context.Context, runtime.Object, v1.PackageRevision, []string) error {
 	return nil
 }
 

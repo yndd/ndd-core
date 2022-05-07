@@ -91,7 +91,16 @@ func getProxyArgs() []string {
 	}
 }
 
-func getArgs(provider *pkgmetav1.Provider, revision v1.PackageRevision) []string {
+func getArgs(provider *pkgmetav1.Provider, revision v1.PackageRevision, crdNames []string) []string {
+	sb := new(strings.Builder)
+	for i, crdName := range crdNames {
+		// dont add a space at the end of the list
+		if i == len(crdNames)-1 {
+			fmt.Fprintf(sb, "%s", crdName)
+		} else {
+			fmt.Fprintf(sb, "%s ", crdName)
+		}
+	}
 	args := []string{
 		"start",
 		"--debug",
@@ -99,14 +108,15 @@ func getArgs(provider *pkgmetav1.Provider, revision v1.PackageRevision) []string
 		fmt.Sprintf("--revision-namespace=%s", revision.GetNamespace()),
 		fmt.Sprintf("--controller-config-name=%s", provider.GetName()),
 		fmt.Sprintf("--autopilot=%s", strconv.FormatBool(revision.GetAutoPilot())),
+		fmt.Sprintf("--crd-names=%s", sb.String()),
 	}
 	return args
 }
 
-func getContainers(provider *pkgmetav1.Provider, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string) []corev1.Container {
+func getContainers(provider *pkgmetav1.Provider, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string, crdNames []string) []corev1.Container {
 	containers := []corev1.Container{}
 	containers = append(containers, getKubeProxyContainer())
-	containers = append(containers, getControllerContainer(provider, revision))
+	containers = append(containers, getControllerContainer(provider, revision, crdNames))
 
 	return containers
 }
@@ -125,13 +135,13 @@ func getKubeProxyContainer() corev1.Container {
 	}
 }
 
-func getControllerContainer(provider *pkgmetav1.Provider, revision v1.PackageRevision) corev1.Container {
+func getControllerContainer(provider *pkgmetav1.Provider, revision v1.PackageRevision, crdNames []string) corev1.Container {
 	return corev1.Container{
 		Name:            "controller",
 		Image:           provider.Spec.Controller.Image,
 		ImagePullPolicy: getPullPolicy(revision),
 		SecurityContext: getSecurityContext(),
-		Args:            getArgs(provider, revision),
+		Args:            getArgs(provider, revision, crdNames),
 		Env:             getEnv(),
 		Command: []string{
 			containerStartupCmd,
@@ -179,7 +189,7 @@ func getVolumes() []corev1.Volume {
 	}
 }
 
-func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string) (*corev1.ServiceAccount, *appsv1.Deployment) { // nolint:interfacer,gocyclo
+func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRevision, cc *v1.ControllerConfig, namespace string, crdNames []string) (*corev1.ServiceAccount, *appsv1.Deployment) { // nolint:interfacer,gocyclo
 	s := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            revision.GetName(),
@@ -219,7 +229,7 @@ func buildProviderDeployment(provider *pkgmetav1.Provider, revision v1.PackageRe
 					SecurityContext:    getPodSecurityContext(),
 					ServiceAccountName: s.GetName(),
 					ImagePullSecrets:   revision.GetPackagePullSecrets(),
-					Containers:         getContainers(provider, revision, cc, namespace),
+					Containers:         getContainers(provider, revision, cc, namespace, crdNames),
 					Volumes:            getVolumes(),
 				},
 			},

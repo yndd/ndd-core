@@ -20,8 +20,6 @@ limitations under the License.
 package v1
 
 import (
-	"reflect"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
@@ -41,20 +39,4 @@ var (
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
-)
-
-// Provider type metadata.
-var (
-	ProviderKind             = reflect.TypeOf(Provider{}).Name()
-	ProviderGroupKind        = schema.GroupKind{Group: Group, Kind: ProviderKind}.String()
-	ProviderKindAPIVersion   = ProviderKind + "." + GroupVersion.String()
-	ProviderGroupVersionKind = GroupVersion.WithKind(ProviderKind)
-)
-
-// Intent type metadata.
-var (
-	IntentKind             = reflect.TypeOf(Intent{}).Name()
-	IntentGroupKind        = schema.GroupKind{Group: Group, Kind: IntentKind}.String()
-	IntentKindAPIVersion   = IntentKind + "." + GroupVersion.String()
-	IntentGroupVersionKind = GroupVersion.WithKind(IntentKind)
 )

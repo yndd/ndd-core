@@ -17,9 +17,11 @@ limitations under the License.
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	"reflect"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type ControllerType string
@@ -27,6 +29,7 @@ type ControllerType string
 const (
 	ControllerTypeController ControllerType = "controller"
 	ControllerTypeIntent     ControllerType = "intent"
+	ControllerTypeProvider   ControllerType = "provider"
 )
 
 // ProviderSpec specifies the configuration of a Provider.
@@ -41,14 +44,6 @@ type ProviderSpec struct {
 	MetaSpec `json:",inline"`
 }
 
-/*
-type Api struct {
-	Group   string `json:"group"`
-	Version string `json:"version"`
-	Kind    string `json:"kind"`
-}
-*/
-
 // ControllerSpec specifies the configuration for the packaged Provider
 // controller.
 type ControllerSpec struct {
@@ -61,53 +56,7 @@ type ControllerSpec struct {
 	// +optional
 	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
 
-	Pods []PodSpec `json:"pods,omitempty"`
-
-	//Apis []Api `json:"apis,omitempty"`
-}
-
-type DeploymentType string
-
-const (
-	DeploymentTypeStatefulset DeploymentType = "statefulset"
-	DeploymentTypeDeployment  DeploymentType = "deployment"
-)
-
-type PodSpec struct {
-	// Name of the pod
-	Name string `json:"name"`
-
-	// Type is the type of the deployment
-	// +kubebuilder:default=statefulset
-	Type DeploymentType `json:"type,omitempty"`
-
-	// PermissionRequests for RBAC rules required for this provider's controller
-	// to function. The RBAC manager is responsible for assessing the requested
-	// permissions.
-	// +optional
-	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
-
-	// Containers identifies the containers in the pod
-	Containers []ContainerSpec `json:"containers,omitempty"`
-}
-
-type ContainerSpec struct {
-	// Provide the container info
-	Container *corev1.Container `json:"container,omitempty"`
-
-	// Extras is certificates, volumes, webhook, etc
-	Extras []Extras `json:"extras,omitempty"`
-}
-
-type Extras struct {
-	Name        string `json:"name"`
-	Webhook     bool   `json:"webhook,omitempty"`
-	Certificate bool   `json:"certificate,omitempty"`
-	Service     bool   `json:"service,omitempty"`
-	Volume      bool   `json:"volume,omitempty"`
-	Port        uint32 `json:"port,omitempty"`
-	TargetPort  uint32 `json:"target-port,omitempty"`
-	Protocol    string `json:"protocol,omitempty"`
+	//Pods []PodSpec `json:"pods,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -136,3 +85,11 @@ func (p *Provider) Hub() {}
 func init() {
 	SchemeBuilder.Register(&Provider{}, &ProviderList{})
 }
+
+// Provider type metadata.
+var (
+	ProviderKind             = reflect.TypeOf(Provider{}).Name()
+	ProviderGroupKind        = schema.GroupKind{Group: Group, Kind: ProviderKind}.String()
+	ProviderKindAPIVersion   = ProviderKind + "." + GroupVersion.String()
+	ProviderGroupVersionKind = GroupVersion.WithKind(ProviderKind)
+)

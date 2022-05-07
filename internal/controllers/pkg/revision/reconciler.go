@@ -414,7 +414,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		}
 	}
 
-	if err := r.hook.Pre(ctx, pkgMeta, pr); err != nil {
+	if err := r.hook.Pre(ctx, pkgMeta, pr, []string{}); err != nil {
 		log.Debug(errPreHook, "error", err)
 		r.record.Event(pr, event.Warning(reasonSync, errors.Wrap(err, errPreHook)))
 		pr.SetConditions(pkgv1.Unhealthy())

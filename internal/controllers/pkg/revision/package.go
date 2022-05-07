@@ -16,6 +16,7 @@ limitations under the License.
 
 package revision
 
+/*
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -29,3 +30,4 @@ func buildProviderPackage(provider *pkgmetav1.Provider, revision v1.PackageRevis
 	provider.SetOwnerReferences([]metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))})
 	return provider
 }
+*/
