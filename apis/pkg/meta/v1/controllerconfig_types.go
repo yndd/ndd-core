@@ -107,6 +107,9 @@ func init() {
 	SchemeBuilder.Register(&Provider{}, &ProviderList{})
 }
 
+// Hub marks this type as the conversion hub.
+func (p *ControllerConfig) Hub() {}
+
 // ControllerConfig type metadata.
 var (
 	ControllerConfigKind             = reflect.TypeOf(ControllerConfig{}).Name()
