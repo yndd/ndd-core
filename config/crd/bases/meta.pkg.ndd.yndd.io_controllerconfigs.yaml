@@ -1405,8 +1405,8 @@ spec:
                       type: string
                     permissionRequests:
                       description: PermissionRequests for RBAC rules required for
-                        this provider's controller to function. The RBAC manager is
-                        responsible for assessing the requested permissions.
+                        this controller to function. The RBAC manager is responsible
+                        for assessing the requested permissions.
                       items:
                         description: PolicyRule holds information that describes a
                           policy rule, but does not contain information about who

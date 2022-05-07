@@ -6,7 +6,6 @@ resources:
 - bases/pkg.ndd.yndd.io_providerrevisions.yaml
 - bases/pkg.ndd.yndd.io_intents.yaml
 - bases/pkg.ndd.yndd.io_intentrevisions.yaml
-- bases/pkg.ndd.yndd.io_controllerconfigs.yaml
 - bases/pkg.ndd.yndd.io_locks.yaml
 - bases/dvr.ndd.yndd.io_networknodes.yaml
 - bases/dvr.ndd.yndd.io_networknodeusages.yaml

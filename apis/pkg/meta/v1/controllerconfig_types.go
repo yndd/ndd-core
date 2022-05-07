@@ -53,7 +53,7 @@ type PodSpec struct {
 	// +kubebuilder:default=1
 	Replicas int `json:"replicas,omitempty"`
 
-	// PermissionRequests for RBAC rules required for this provider's controller
+	// PermissionRequests for RBAC rules required for this controller
 	// to function. The RBAC manager is responsible for assessing the requested
 	// permissions.
 	// +optional
@@ -96,11 +96,11 @@ type ControllerConfig struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 
-// A ControllerConfigList is the description of a Ndd Provider package.
+// A ControllerConfigList is the description of a ControllerConfig.
 type ControllerConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Provider `json:"items"`
+	Items           []ControllerConfig `json:"items"`
 }
 
 func init() {
@@ -108,7 +108,7 @@ func init() {
 }
 
 // Hub marks this type as the conversion hub.
-func (p *ControllerConfig) Hub() {}
+//func (p *ControllerConfig) Hub() {}
 
 // ControllerConfig type metadata.
 var (

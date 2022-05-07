@@ -85,7 +85,7 @@ func (in *ControllerConfigList) DeepCopyInto(out *ControllerConfigList) {
 	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]Provider, len(*in))
+		*out = make([]ControllerConfig, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
