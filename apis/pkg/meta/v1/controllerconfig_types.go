@@ -104,7 +104,7 @@ type ControllerConfigList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Provider{}, &ProviderList{})
+	SchemeBuilder.Register(&ControllerConfig{}, &ControllerConfigList{})
 }
 
 // Hub marks this type as the conversion hub.

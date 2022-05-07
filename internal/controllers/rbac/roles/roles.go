@@ -93,7 +93,7 @@ var rulesSystemExtraNew = []rbacv1.PolicyRule{
 	},
 	{
 		APIGroups: []string{"meta.pkg.ndd.yndd.io"},
-		Resources: []string{"providers"},
+		Resources: []string{"providers", "controllerconfigs"},
 		Verbs:     verbsEdit,
 	},
 	{
