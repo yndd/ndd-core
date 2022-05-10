@@ -27,12 +27,23 @@ import (
 
 // ControllerConfigSpec specifies the configuration of a controller.
 type ControllerConfigSpec struct {
-	// ConsulNamespace is the name of the consul namespace
+	// ServiceDiscovery is the type of service discovery
+	// +kubebuilder:validation:Enum=`consul`;`k8s`
 	// +kubebuilder:default=consul
-	ConsulNamespace string `json:"consul-namespace,omitempty"`
+	ServiceDiscovery ServiceDiscoveryType `json:"service-discovery,omitempty"`
+	// ServiceDiscoverylNamespace is the name of the service discovery namespace
+	// +kubebuilder:default=consul
+	ServiceDiscoveryNamespace string `json:"service-discovery-namespace,omitempty"`
 	// pods define the pod specification used by the controller for LCM
 	Pods []PodSpec `json:"pods,omitempty"`
 }
+
+type ServiceDiscoveryType string
+
+const (
+	ServiceDiscoveryTypeConsul ServiceDiscoveryType = "consul"
+	ServiceDiscoveryTypeK8s    ServiceDiscoveryType = "k8s"
+)
 
 type DeploymentType string
 
