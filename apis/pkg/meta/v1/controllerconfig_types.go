@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	vendorTypeLabelKey = Group + "/" + "vendorTypeLabelKey"
+	vendorTypeLabelKey = Group + "/" + "vendorType"
 )
 
 // ControllerConfigSpec specifies the configuration of a controller.
