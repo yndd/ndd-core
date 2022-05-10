@@ -25,6 +25,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+const (
+	vendorTypeLabelKey = Group
+)
+
 // ControllerConfigSpec specifies the configuration of a controller.
 type ControllerConfigSpec struct {
 	VendorType string `json:"vendor_type,omitempty"`
