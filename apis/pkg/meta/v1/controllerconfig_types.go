@@ -64,11 +64,14 @@ type PodSpec struct {
 	// +kubebuilder:default=1
 	Replicas int `json:"replicas,omitempty"`
 
+	// MaxJobNumber indication on how many jobs a given pods should hold
+	MaxJobNumber int `json:"max-job-number,omitempty"`
+
 	// PermissionRequests for RBAC rules required for this controller
 	// to function. The RBAC manager is responsible for assessing the requested
 	// permissions.
 	// +optional
-	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
+	PermissionRequests []rbacv1.PolicyRule `json:"permission-requests,omitempty"`
 
 	// Containers identifies the containers in the pod
 	Containers []ContainerSpec `json:"containers,omitempty"`
