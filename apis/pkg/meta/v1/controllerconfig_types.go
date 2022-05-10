@@ -27,6 +27,7 @@ import (
 
 // ControllerConfigSpec specifies the configuration of a controller.
 type ControllerConfigSpec struct {
+	VendorType string `json:"vendor_type,omitempty"`
 	// ServiceDiscovery is the type of service discovery
 	// +kubebuilder:validation:Enum=`consul`;`k8s`
 	// +kubebuilder:default=consul
