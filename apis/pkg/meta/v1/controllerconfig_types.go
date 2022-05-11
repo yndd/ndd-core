@@ -65,9 +65,13 @@ type PodSpec struct {
 	// +kubebuilder:default=statefulset
 	Type DeploymentType `json:"type,omitempty"`
 
-	// Replicas
+	// Replicas defines the amount of replicas expected
 	// +kubebuilder:default=1
 	Replicas int `json:"replicas,omitempty"`
+
+	// MaxReplicas defines the max expected replications of this pod
+	// +kubebuilder:default=8
+	MaxReplicas int `json:"max-replicas,omitempty"`
 
 	// MaxJobNumber indication on how many jobs a given pods should hold
 	MaxJobNumber int `json:"max-job-number,omitempty"`
