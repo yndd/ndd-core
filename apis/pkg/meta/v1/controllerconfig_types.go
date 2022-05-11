@@ -59,7 +59,7 @@ const (
 
 type PodSpec struct {
 	// Name of the pod
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// Type is the type of the deployment
 	// +kubebuilder:default=statefulset
@@ -71,6 +71,9 @@ type PodSpec struct {
 
 	// MaxJobNumber indication on how many jobs a given pods should hold
 	MaxJobNumber int `json:"max-job-number,omitempty"`
+
+	// Watchers defines the identity of the watchers to watch the service registered by the pod
+	Watchers []string `json:"watchers,omitempty"`
 
 	// PermissionRequests for RBAC rules required for this controller
 	// to function. The RBAC manager is responsible for assessing the requested
