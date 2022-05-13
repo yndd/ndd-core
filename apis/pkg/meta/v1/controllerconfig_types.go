@@ -18,6 +18,7 @@ package v1
 
 import (
 	"reflect"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -27,7 +28,45 @@ import (
 
 const (
 	VendorTypeLabelKey = Group + "/" + "vendorType"
+	targetService      = "target"
 )
+
+type ServiceInfo struct {
+	ServiceName string
+	Kind        Kind
+}
+
+func (ctrlMetaCfg *ControllerConfig) GetPodServiceInfo(podName string, k Kind) *ServiceInfo {
+	return &ServiceInfo{
+		ServiceName: strings.Join([]string{ctrlMetaCfg.Name, podName}, "-"),
+		Kind:        k,
+	}
+}
+
+func (ctrlMetaCfg *ControllerConfig) GetTargetServiceInfo() *ServiceInfo {
+	return &ServiceInfo{
+		ServiceName: strings.Join([]string{ctrlMetaCfg.Name, targetService}, "-"),
+		Kind:        KindNone,
+	}
+}
+
+func (ctrlMetaCfg *ControllerConfig) GetServicesInfo() []*ServiceInfo {
+	services := make([]*ServiceInfo, 0, len(ctrlMetaCfg.Spec.Pods)+1)
+	for _, pod := range ctrlMetaCfg.Spec.Pods {
+		services = append(services, &ServiceInfo{
+			ServiceName: strings.Join([]string{ctrlMetaCfg.Name, pod.Name}, "-"),
+			Kind:        pod.Kind,
+		})
+		break
+	}
+	return services
+}
+
+func (ctrlMetaCfg *ControllerConfig) GetAllServicesInfo() []*ServiceInfo {
+	services := ctrlMetaCfg.GetServicesInfo()
+	services = append(services, ctrlMetaCfg.GetTargetServiceInfo())
+	return services
+}
 
 // ControllerConfigSpec specifies the configuration of a controller.
 type ControllerConfigSpec struct {
@@ -57,9 +96,25 @@ const (
 	DeploymentTypeDeployment  DeploymentType = "deployment"
 )
 
+type Kind string
+
+const (
+	KindNone       Kind = ""
+	KindWorker     Kind = "worker"
+	KindReconciler Kind = "reconciler"
+)
+
 type PodSpec struct {
 	// Name of the pod
 	Name string `json:"name,omitempty"`
+
+	// Kind is the kind of pod
+	// +kubebuilder:validation:Enum=`worker`;`reconciler`
+	Kind Kind `json:"kind,omitempty"`
+
+	// CrdPackage is the package used
+	// +kubebuilder:validation:Enum=`worker`;`reconciler`
+	CrdPackage string `json:"crd-package,omitempty"`
 
 	// Type is the type of the deployment
 	// +kubebuilder:default=statefulset
