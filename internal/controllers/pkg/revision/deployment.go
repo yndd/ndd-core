@@ -75,10 +75,31 @@ func getEnv() []corev1.EnvVar {
 			},
 		},
 	}
+	envNodeName := corev1.EnvVar{
+		Name: "NODE_NAME",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				APIVersion: "v1",
+				FieldPath:  "spec.nodeName",
+			},
+		},
+	}
+	envNodeIP := corev1.EnvVar{
+		Name: "NODE_IP",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				APIVersion: "v1",
+				FieldPath:  "status.hostIP",
+			},
+		},
+	}
 	return []corev1.EnvVar{
 		envNameSpace,
 		envPodIP,
 		envPodName,
+		envNodeName,
+		envNodeIP,
+
 	}
 }
 
