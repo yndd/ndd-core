@@ -37,10 +37,6 @@ spec:
           spec:
             description: ControllerConfigSpec specifies the configuration of a controller.
             properties:
-              consul-namespace:
-                default: consul
-                description: ConsulNamespace is the name of the consul namespace
-                type: string
               pods:
                 description: pods define the pod specification used by the controller
                   for LCM
@@ -1400,10 +1396,32 @@ spec:
                             type: array
                         type: object
                       type: array
+                    kind:
+                      description: Kind is the kind of pod
+                      enum:
+                      - worker
+                      - reconciler
+                      type: string
+                    max-job-number:
+                      description: MaxJobNumber indication on how many jobs a given
+                        pods should hold
+                      type: integer
+                    max-replicas:
+                      default: 8
+                      description: MaxReplicas defines the max expected replications
+                        of this pod
+                      type: integer
                     name:
                       description: Name of the pod
                       type: string
-                    permissionRequests:
+                    package:
+                      description: CrdPackage is the package used which holds the
+                        crds
+                      enum:
+                      - worker
+                      - reconciler
+                      type: string
+                    permission-requests:
                       description: PermissionRequests for RBAC rules required for
                         this controller to function. The RBAC manager is responsible
                         for assessing the requested permissions.
@@ -1459,16 +1477,34 @@ spec:
                       type: array
                     replicas:
                       default: 1
-                      description: Replicas
+                      description: Replicas defines the amount of replicas expected
                       type: integer
                     type:
                       default: statefulset
                       description: Type is the type of the deployment
                       type: string
-                  required:
-                  - name
+                    watchers:
+                      description: Watchers defines the identity of the watchers to
+                        watch the service registered by the pod
+                      items:
+                        type: string
+                      type: array
                   type: object
                 type: array
+              service-discovery:
+                default: consul
+                description: ServiceDiscovery is the type of service discovery
+                enum:
+                - consul
+                - k8s
+                type: string
+              service-discovery-namespace:
+                default: consul
+                description: ServiceDiscoverylNamespace is the name of the service
+                  discovery namespace
+                type: string
+              vendor_type:
+                type: string
             type: object
         required:
         - spec

@@ -99,7 +99,6 @@ func getEnv() []corev1.EnvVar {
 		envPodName,
 		envNodeName,
 		envNodeIP,
-
 	}
 }
 

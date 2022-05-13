@@ -57,7 +57,6 @@ func (ctrlMetaCfg *ControllerConfig) GetServicesInfo() []*ServiceInfo {
 			ServiceName: strings.Join([]string{ctrlMetaCfg.Name, pod.Name}, "-"),
 			Kind:        pod.Kind,
 		})
-		break
 	}
 	return services
 }
@@ -65,6 +64,23 @@ func (ctrlMetaCfg *ControllerConfig) GetServicesInfo() []*ServiceInfo {
 func (ctrlMetaCfg *ControllerConfig) GetAllServicesInfo() []*ServiceInfo {
 	services := ctrlMetaCfg.GetServicesInfo()
 	services = append(services, ctrlMetaCfg.GetTargetServiceInfo())
+	return services
+}
+
+func (ctrlMetaCfg *ControllerConfig) GetServicesInfoByKind(kind Kind) []*ServiceInfo {
+	services := make([]*ServiceInfo, 0, len(ctrlMetaCfg.Spec.Pods)+1)
+	for _, pod := range ctrlMetaCfg.Spec.Pods {
+		if pod.Kind == kind {
+			services = append(services, &ServiceInfo{
+				ServiceName: strings.Join([]string{ctrlMetaCfg.Name, pod.Name}, "-"),
+				Kind:        pod.Kind,
+			})
+			// break not added to make it more generic in the future if multiple pods have the same kind 
+		}
+	}
+	if kind == KindWorker {
+		services = append(services, ctrlMetaCfg.GetTargetServiceInfo())
+	}
 	return services
 }
 
