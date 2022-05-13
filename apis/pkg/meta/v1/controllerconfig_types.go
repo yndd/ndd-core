@@ -112,9 +112,9 @@ type PodSpec struct {
 	// +kubebuilder:validation:Enum=`worker`;`reconciler`
 	Kind Kind `json:"kind,omitempty"`
 
-	// CrdPackage is the package used
+	// CrdPackage is the package used which holds the crds
 	// +kubebuilder:validation:Enum=`worker`;`reconciler`
-	CrdPackage string `json:"crd-package,omitempty"`
+	Package string `json:"package,omitempty"`
 
 	// Type is the type of the deployment
 	// +kubebuilder:default=statefulset
