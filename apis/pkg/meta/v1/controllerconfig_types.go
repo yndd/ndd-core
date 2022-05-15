@@ -31,6 +31,10 @@ const (
 	targetService      = "target"
 )
 
+func GetServiceName(prefix, name string) string {
+	return strings.Join([]string{prefix, name}, "-")
+}
+
 type ServiceInfo struct {
 	ServiceName string
 	Kind        Kind
@@ -38,14 +42,14 @@ type ServiceInfo struct {
 
 func (ctrlMetaCfg *ControllerConfig) GetPodServiceInfo(podName string, k Kind) *ServiceInfo {
 	return &ServiceInfo{
-		ServiceName: strings.Join([]string{ctrlMetaCfg.Name, podName}, "-"),
+		ServiceName: GetServiceName(ctrlMetaCfg.Name, podName),
 		Kind:        k,
 	}
 }
 
 func (ctrlMetaCfg *ControllerConfig) GetTargetServiceInfo() *ServiceInfo {
 	return &ServiceInfo{
-		ServiceName: strings.Join([]string{ctrlMetaCfg.Name, targetService}, "-"),
+		ServiceName: GetServiceName(ctrlMetaCfg.Name, targetService),
 		Kind:        KindNone,
 	}
 }
@@ -54,7 +58,7 @@ func (ctrlMetaCfg *ControllerConfig) GetServicesInfo() []*ServiceInfo {
 	services := make([]*ServiceInfo, 0, len(ctrlMetaCfg.Spec.Pods)+1)
 	for _, pod := range ctrlMetaCfg.Spec.Pods {
 		services = append(services, &ServiceInfo{
-			ServiceName: strings.Join([]string{ctrlMetaCfg.Name, pod.Name}, "-"),
+			ServiceName: GetServiceName(ctrlMetaCfg.Name, pod.Name),
 			Kind:        pod.Kind,
 		})
 	}
@@ -72,7 +76,7 @@ func (ctrlMetaCfg *ControllerConfig) GetServicesInfoByKind(kind Kind) []*Service
 	for _, pod := range ctrlMetaCfg.Spec.Pods {
 		if pod.Kind == kind {
 			services = append(services, &ServiceInfo{
-				ServiceName: strings.Join([]string{ctrlMetaCfg.Name, pod.Name}, "-"),
+				ServiceName: GetServiceName(ctrlMetaCfg.Name, pod.Name),
 				Kind:        pod.Kind,
 			})
 			// break not added to make it more generic in the future if multiple pods have the same kind 
