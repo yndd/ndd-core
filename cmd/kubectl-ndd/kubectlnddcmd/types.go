@@ -14,23 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clicmd
+package kubectlnddcmd
 
 import (
-	"github.com/spf13/cobra"
+	"github.com/spf13/afero"
+	"github.com/yndd/ndd-runtime/pkg/parser"
 )
 
-// packageCmd represents the kubectl package command
-var packageCmd = &cobra.Command{
-	Use:          "package",
-	Short:        "kubectl ndd package cli",
-	Long:         "kubectl ndd package cli for usage with the network device driver in kubernetes",
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return nil
-	},
+type BuildChild struct {
+	name           string
+	providerLinter parser.Linter
+	intentLinter   parser.Linter
+	fs             afero.Fs
 }
 
-func init() {
-	rootCmd.AddCommand(packageCmd)
+type PushChild struct {
+	fs afero.Fs
 }
+
+/*
+// pushProviderCmd pushes a Provider.
+type PushProviderCmd struct {
+	Tag string `arg:"" help:"Tag of the package to be pushed. Must be a valid OCI image tag."`
+}
+
+type PushIntentCmd struct {
+	Tag string `arg:"" help:"Tag of the package to be pushed. Must be a valid OCI image tag."`
+}
+*/
