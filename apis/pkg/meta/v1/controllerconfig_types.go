@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -24,6 +25,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -33,6 +35,17 @@ const (
 
 func GetServiceName(prefix, name string) string {
 	return strings.Join([]string{prefix, name}, "-")
+}
+
+func GetServiceTag(namespace, name string) []string {
+	return []string{fmt.Sprintf("pod=%s/%s", namespace, name)}
+}
+
+func GetTargetTag(namespace, name string) []string {
+	return []string{fmt.Sprintf("target=%s", types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}.String())}
 }
 
 type ServiceInfo struct {
@@ -79,7 +92,7 @@ func (ctrlMetaCfg *ControllerConfig) GetServicesInfoByKind(kind Kind) []*Service
 				ServiceName: GetServiceName(ctrlMetaCfg.Name, pod.Name),
 				Kind:        pod.Kind,
 			})
-			// break not added to make it more generic in the future if multiple pods have the same kind 
+			// break not added to make it more generic in the future if multiple pods have the same kind
 		}
 	}
 	if kind == KindWorker {
