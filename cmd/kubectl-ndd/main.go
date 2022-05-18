@@ -16,7 +16,7 @@ limitations under the License.
 
 package main
 
-import "github.com/yndd/ndd-core/cmd/cli/clicmd"
+import "github.com/yndd/ndd-core/cmd/kubectl-ndd/clicmd"
 
 func main() {
 	clicmd.Execute()
