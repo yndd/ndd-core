@@ -31,6 +31,7 @@ import (
 const (
 	VendorTypeLabelKey = Group + "/" + "vendorType"
 	targetService      = "target"
+	serviceTag         = "pod"
 )
 
 func GetServiceName(prefix, name string) string {
@@ -38,11 +39,11 @@ func GetServiceName(prefix, name string) string {
 }
 
 func GetServiceTag(namespace, name string) []string {
-	return []string{fmt.Sprintf("pod=%s/%s", namespace, name)}
+	return []string{fmt.Sprintf("%s=%s/%s", serviceTag, namespace, name)}
 }
 
 func GetTargetTag(namespace, name string) []string {
-	return []string{fmt.Sprintf("target=%s", types.NamespacedName{
+	return []string{fmt.Sprintf("%s=%s", targetService, types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
 	}.String())}
