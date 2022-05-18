@@ -99,7 +99,7 @@ test: manifests generate fmt vet ## Run tests.
 build: generate fmt vet ## Build binaries: core, rbac and cli
 	go build -o bin/core ./cmd/core/main.go
 	go build -o bin/rbac ./cmd/rbac/main.go
-	go build -o bin/kubectl-ndd ./cmd/cli/main.go
+	go build -o bin/kubectl-ndd ./cmd/kubectl-ndd/main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
