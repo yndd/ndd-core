@@ -54,50 +54,50 @@ type ServiceInfo struct {
 	Kind        Kind
 }
 
-func (ctrlMetaCfg *ControllerConfig) GetPodServiceInfo(podName string, k Kind) *ServiceInfo {
+func (cc *ControllerConfig) GetPodServiceInfo(podName string, k Kind) *ServiceInfo {
 	return &ServiceInfo{
-		ServiceName: GetServiceName(ctrlMetaCfg.Name, podName),
+		ServiceName: GetServiceName(cc.Name, podName),
 		Kind:        k,
 	}
 }
 
-func (ctrlMetaCfg *ControllerConfig) GetTargetServiceInfo() *ServiceInfo {
+func (cc *ControllerConfig) GetTargetServiceInfo() *ServiceInfo {
 	return &ServiceInfo{
-		ServiceName: GetServiceName(ctrlMetaCfg.Name, targetService),
+		ServiceName: GetServiceName(cc.Name, targetService),
 		Kind:        KindNone,
 	}
 }
 
-func (ctrlMetaCfg *ControllerConfig) GetServicesInfo() []*ServiceInfo {
-	services := make([]*ServiceInfo, 0, len(ctrlMetaCfg.Spec.Pods)+1)
-	for _, pod := range ctrlMetaCfg.Spec.Pods {
+func (cc *ControllerConfig) GetServicesInfo() []*ServiceInfo {
+	services := make([]*ServiceInfo, 0, len(cc.Spec.Pods)+1)
+	for _, pod := range cc.Spec.Pods {
 		services = append(services, &ServiceInfo{
-			ServiceName: GetServiceName(ctrlMetaCfg.Name, pod.Name),
+			ServiceName: GetServiceName(cc.Name, pod.Name),
 			Kind:        pod.Kind,
 		})
 	}
 	return services
 }
 
-func (ctrlMetaCfg *ControllerConfig) GetAllServicesInfo() []*ServiceInfo {
-	services := ctrlMetaCfg.GetServicesInfo()
-	services = append(services, ctrlMetaCfg.GetTargetServiceInfo())
+func (cc *ControllerConfig) GetAllServicesInfo() []*ServiceInfo {
+	services := cc.GetServicesInfo()
+	services = append(services, cc.GetTargetServiceInfo())
 	return services
 }
 
-func (ctrlMetaCfg *ControllerConfig) GetServicesInfoByKind(kind Kind) []*ServiceInfo {
-	services := make([]*ServiceInfo, 0, len(ctrlMetaCfg.Spec.Pods)+1)
-	for _, pod := range ctrlMetaCfg.Spec.Pods {
+func (cc *ControllerConfig) GetServicesInfoByKind(kind Kind) []*ServiceInfo {
+	services := make([]*ServiceInfo, 0, len(cc.Spec.Pods)+1)
+	for _, pod := range cc.Spec.Pods {
 		if pod.Kind == kind {
 			services = append(services, &ServiceInfo{
-				ServiceName: GetServiceName(ctrlMetaCfg.Name, pod.Name),
+				ServiceName: GetServiceName(cc.Name, pod.Name),
 				Kind:        pod.Kind,
 			})
 			// break not added to make it more generic in the future if multiple pods have the same kind
 		}
 	}
 	if kind == KindWorker {
-		services = append(services, ctrlMetaCfg.GetTargetServiceInfo())
+		services = append(services, cc.GetTargetServiceInfo())
 	}
 	return services
 }
@@ -166,7 +166,7 @@ type PodSpec struct {
 	MaxJobNumber int `json:"max-job-number,omitempty"`
 
 	// Watchers defines the identity of the watchers to watch the service registered by the pod
-	Watchers []string `json:"watchers,omitempty"`
+	//Watchers []string `json:"watchers,omitempty"`
 
 	// PermissionRequests for RBAC rules required for this controller
 	// to function. The RBAC manager is responsible for assessing the requested
