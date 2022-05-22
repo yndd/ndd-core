@@ -24,12 +24,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func renderServiceAccount(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, revision pkgv1.PackageRevision) *corev1.ServiceAccount {
+func renderServiceAccount(pm *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            getControllerPodKey(p.Name, podSpec.Name),
-			Namespace:       p.Namespace,
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, pkgv1.ProviderRevisionGroupVersionKind))},
+			Name:            pr.GetName(),
+			Namespace:       pm.Namespace,
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 	}
 }

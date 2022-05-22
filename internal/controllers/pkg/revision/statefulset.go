@@ -34,46 +34,36 @@ type Options struct {
 	grpcServiceName      string
 }
 
-func renderProviderStatefulSet(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, revision pkgv1.PackageRevision, o *Options) *appsv1.StatefulSet {
+func renderProviderStatefulSet(pm *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision, o *Options) *appsv1.StatefulSet {
 	s := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            getControllerPodKey(p.Name, podSpec.Name),
-			Namespace:       p.Namespace,
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, pkgv1.ProviderRevisionGroupVersionKind))},
+			Name:            pr.GetName(),
+			Namespace:       pm.Namespace,
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas: utils.Int32Ptr(1),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: getLabels(p, podSpec),
+				MatchLabels: getLabels(podSpec, pr),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      getControllerPodKey(p.Name, podSpec.Name),
-					Namespace: p.Namespace,
-					Labels:    getLabels(p, podSpec),
+					Name:      pr.GetName(),
+					Namespace: pm.Namespace,
+					Labels:    getLabels(podSpec, pr),
 				},
 				Spec: corev1.PodSpec{
 					SecurityContext:    getPodSecurityContext(),
-					ServiceAccountName: renderServiceAccount(p, podSpec, revision).GetName(),
-					ImagePullSecrets:   revision.GetPackagePullSecrets(),
-					Containers:         getContainers(p, podSpec, revision.GetPackagePullPolicy(), o),
-					Volumes:            getVolumes(p, podSpec),
+					ServiceAccountName: renderServiceAccount(pm, podSpec, pr).GetName(),
+					ImagePullSecrets:   pr.GetPackagePullSecrets(),
+					Containers:         getContainers(pm, podSpec, pr.GetPackagePullPolicy(), o),
+					Volumes:            getVolumes(podSpec, pr),
 				},
 			},
 		},
 	}
 
 	return s
-}
-
-func getLabels(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec) map[string]string {
-	labels := getRevisionLabel(p.Name, podSpec)
-	for _, container := range podSpec.Containers {
-		for _, extra := range container.Extras {
-			labels[getLabelKey(extra.Name)] = getServiceName(p.Name, podSpec.Name, container.Container.Name, extra.Name)
-		}
-	}
-	return labels
 }
 
 func getPodSecurityContext() *corev1.PodSecurityContext {
@@ -214,17 +204,25 @@ func getProxyArgs() []string {
 	}
 }
 
-func getArgs(p *pkgmetav1.Provider) []string {
-	cnArg := strings.Join([]string{"--controller-name", p.Name}, "=")
-	dkArg := strings.Join([]string{"--deployment-kind", "distributed"}, "=")
-	cnsArg := strings.Join([]string{"--consul-namespace", p.Spec.ServiceDiscoveryNamespace}, "=")
-	return []string{
-		"start",
-		cnArg,
-		dkArg,
-		cnsArg,
-		"--debug",
+func getArgs(pm *pkgmetav1.Provider) []string {
+	args := []string{"start"}
+	switch pm.Spec.Pod.Type {
+	case pkgmetav1.DeploymentTypeStatefulset:
+		args = append(args, strings.Join([]string{"--controller-name", pm.Name}, "="))
+		//args = append(args, strings.Join([]string{"--service-discovery-namespace", pm.Spec.ServiceDiscoveryNamespace}, "="))
+		//args = append(args, strings.Join([]string{"--service-discovery", pm.Spec.ServiceDiscoveryNamespace}, "="))
+	case pkgmetav1.DeploymentTypeDeployment:
+		if pm.Spec.ServiceDiscoveryNamespace != nil {
+			args = append(args, strings.Join([]string{"--service-discovery-namespace", *pm.Spec.ServiceDiscoveryNamespace}, "="))
+		}
+		if pm.Spec.ServiceDiscovery != nil {
+			args = append(args, strings.Join([]string{"--service-discovery", string(*pm.Spec.ServiceDiscovery)}, "="))
+		}
+	default:
 	}
+
+	args = append(args, "--debug")
+	return args
 }
 
 func getVolumeMounts(c *pkgmetav1.ContainerSpec) []corev1.VolumeMount {
@@ -248,7 +246,7 @@ func getVolumeMounts(c *pkgmetav1.ContainerSpec) []corev1.VolumeMount {
 	return volumes
 }
 
-func getVolumes(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec) []corev1.Volume {
+func getVolumes(podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision) []corev1.Volume {
 	volume := []corev1.Volume{}
 	for _, c := range podSpec.Containers {
 		for _, extra := range c.Extras {
@@ -257,7 +255,7 @@ func getVolumes(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec) []corev1.Volu
 					Name: extra.Name,
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
-							SecretName:  getCertificateName(p.Name, podSpec.Name, c.Container.Name, extra.Name),
+							SecretName:  getCertificateName(pr.GetName(), c.Container.Name, extra.Name),
 							DefaultMode: utils.Int32Ptr(420),
 						},
 					},

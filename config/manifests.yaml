@@ -105,7 +105,7 @@ spec:
                   - package
                   type: object
                 type: array
-              vendor-type:
+              vendorType:
                 description: VendorType specifies the vendor of the provider composite
                 type: string
             type: object
@@ -566,7 +566,7 @@ spec:
                 required:
                 - version
                 type: object
-              pods:
+              pod:
                 description: pods define the pod specification used by the controller
                   for LCM/resource allocation
                 properties:
@@ -1875,7 +1875,7 @@ spec:
                                 type: string
                               service:
                                 type: boolean
-                              target-port:
+                              targetPort:
                                 format: int32
                                 type: integer
                               volume:
@@ -1888,19 +1888,21 @@ spec:
                           type: array
                       type: object
                     type: array
-                  max-job-number:
+                  maxJobNumber:
                     description: MaxJobNumber indication on how many jobs a given
                       pods should hold
+                    format: int32
                     type: integer
-                  max-replicas:
+                  maxReplicas:
                     default: 8
                     description: MaxReplicas defines the max expected replications
                       of this pod
+                    format: int32
                     type: integer
                   name:
                     description: Name of the pod
                     type: string
-                  permission-requests:
+                  permissionRequests:
                     description: PermissionRequests for RBAC rules required for this
                       controller to function. The RBAC manager is responsible for
                       assessing the requested permissions.
@@ -1956,6 +1958,7 @@ spec:
                   replicas:
                     default: 1
                     description: Replicas defines the amount of replicas expected
+                    format: int32
                     type: integer
                   type:
                     default: deployment
@@ -1965,14 +1968,14 @@ spec:
                     - deployment
                     type: string
                 type: object
-              service-discovery:
+              serviceDiscovery:
                 default: consul
                 description: ServiceDiscovery is the type of service discovery
                 enum:
                 - consul
                 - k8s
                 type: string
-              service-discovery-namespace:
+              serviceDiscoveryNamespace:
                 default: consul
                 description: ServiceDiscoverylNamespace is the name of the service
                   discovery namespace

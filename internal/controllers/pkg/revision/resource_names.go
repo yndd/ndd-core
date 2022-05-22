@@ -30,7 +30,7 @@ const (
 	certPathSuffix      = "serving-certs"
 	containerStartupCmd = "/manager"
 
-	statefulsetKey = "statefulset"
+	revisionTag = "revision"
 
 	userGroup = 2000
 
@@ -56,21 +56,21 @@ func getRoleName(ctrlCfgName, podName, containerName string) string {
 	return strings.Join([]string{ctrlCfgName, podName, containerName}, "-")
 }
 
-func getRevisionLabelString(ctrlCfgName string, podSpec *pkgmetav1.PodSpec) string {
-	return fmt.Sprintf("%s=%s", getLabelKey(statefulsetKey), getControllerPodKey(ctrlCfgName, podSpec.Name))
+func getRevisionLabelString(pr pkgv1.PackageRevision) string {
+	return fmt.Sprintf("%s=%s", getLabelKey(revisionTag), pr.GetName())
 
 }
 
-func getRevisionLabel(ctrlCfgName string, podSpec *pkgmetav1.PodSpec) map[string]string {
-	return map[string]string{getLabelKey(statefulsetKey): getControllerPodKey(ctrlCfgName, podSpec.Name)}
+func getRevisionLabel(pr pkgv1.PackageRevision) map[string]string {
+	return map[string]string{getLabelKey(revisionTag): pr.GetName()}
 }
 
-func getCertificateName(ctrlCfgName, podName, containerName, extraName string) string {
-	return strings.Join([]string{ctrlCfgName, podName, containerName, extraName, certSuffix}, "-")
+func getCertificateName(prName, containerName, extraName string) string {
+	return strings.Join([]string{prName, containerName, extraName, certSuffix}, "-")
 }
 
-func getServiceName(ctrlCfgName, podName, containerName, extraName string) string {
-	return strings.Join([]string{ctrlCfgName, podName, containerName, extraName, serviceSuffix}, "-")
+func getServiceName(prName, containerName, extraName string) string {
+	return strings.Join([]string{prName, containerName, extraName, serviceSuffix}, "-")
 }
 
 func getMutatingWebhookName(crdSingular, crdGroup string) string {
@@ -91,7 +91,16 @@ func systemClusterProviderRoleName(roleName string) string {
 	return nameProviderPrefix + roleName + nameSuffixSystem
 }
 
-func getLabelKey(extraName string) string {
-	return strings.Join([]string{pkgv1.PackageNamespace, extraName}, "/")
+func getLabelKey(suffix string) string {
+	return strings.Join([]string{pkgv1.Group, suffix}, "/")
+}
 
+func getLabels(podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision) map[string]string {
+	labels := getRevisionLabel(pr)
+	for _, container := range podSpec.Containers {
+		for _, extra := range container.Extras {
+			labels[getLabelKey(extra.Name)] = getServiceName(pr.GetName(), container.Container.Name, extra.Name)
+		}
+	}
+	return labels
 }

@@ -26,8 +26,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func renderService(cc *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, revision pkgv1.PackageRevision) *corev1.Service { // nolint:interfacer,gocyclo
-	serviceName := getServiceName(cc.Name, podSpec.Name, c.Container.Name, extra.Name)
+func renderService(cc *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, pr pkgv1.PackageRevision) *corev1.Service { // nolint:interfacer,gocyclo
+	serviceName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
 
 	port := int32(443)
 	if extra.Port != 0 {
@@ -49,7 +49,7 @@ func renderService(cc *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmet
 			Labels: map[string]string{
 				getLabelKey(extra.Name): serviceName,
 			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, pkgv1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{

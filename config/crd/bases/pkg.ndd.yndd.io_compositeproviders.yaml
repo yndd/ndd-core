@@ -99,7 +99,7 @@ spec:
                   - package
                   type: object
                 type: array
-              vendor-type:
+              vendorType:
                 description: VendorType specifies the vendor of the provider composite
                 type: string
             type: object

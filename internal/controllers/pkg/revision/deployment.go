@@ -27,30 +27,30 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/utils"
 )
 
-func renderProviderDeployment(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, revision pkgv1.PackageRevision, o *Options) *appsv1.Deployment {
+func renderProviderDeployment(pm *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision, o *Options) *appsv1.Deployment {
 	s := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            getControllerPodKey(p.Name, podSpec.Name),
-			Namespace:       p.Namespace,
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, pkgv1.ProviderRevisionGroupVersionKind))},
+			Name:            pr.GetName(),
+			Namespace:       pm.Namespace,
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: utils.Int32Ptr(1),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: getLabels(p, podSpec),
+				MatchLabels: getLabels(podSpec, pr),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      getControllerPodKey(p.Name, podSpec.Name),
-					Namespace: p.Namespace,
-					Labels:    getLabels(p, podSpec),
+					Name:      pr.GetName(),
+					Namespace: pm.Namespace,
+					Labels:    getLabels(podSpec, pr),
 				},
 				Spec: corev1.PodSpec{
 					SecurityContext:    getPodSecurityContext(),
-					ServiceAccountName: renderServiceAccount(p, podSpec, revision).GetName(),
-					ImagePullSecrets:   revision.GetPackagePullSecrets(),
-					Containers:         getContainers(p, podSpec, revision.GetPackagePullPolicy(), o),
-					Volumes:            getVolumes(p, podSpec),
+					ServiceAccountName: renderServiceAccount(pm, podSpec, pr).GetName(),
+					ImagePullSecrets:   pr.GetPackagePullSecrets(),
+					Containers:         getContainers(pm, podSpec, pr.GetPackagePullPolicy(), o),
+					Volumes:            getVolumes(podSpec, pr),
 				},
 			},
 		},

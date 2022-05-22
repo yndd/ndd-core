@@ -105,7 +105,7 @@ const (
 // ControllerSpec specifies the configuration of a Controller.
 type CompositeProviderSpec struct {
 	// VendorType specifies the vendor of the provider composite
-	VendorType string `json:"vendor-type,omitempty"`
+	VendorType string `json:"vendorType,omitempty"`
 	// Packages define the package specification used for creating the provider
 	Packages []PackageSpec `json:"pods,omitempty"`
 }

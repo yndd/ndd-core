@@ -44,12 +44,12 @@ type ProviderSpec struct {
 	// ServiceDiscovery is the type of service discovery
 	// +kubebuilder:validation:Enum=`consul`;`k8s`
 	// +kubebuilder:default=consul
-	ServiceDiscovery ServiceDiscoveryType `json:"service-discovery,omitempty"`
+	ServiceDiscovery *ServiceDiscoveryType `json:"serviceDiscovery,omitempty"`
 	// ServiceDiscoverylNamespace is the name of the service discovery namespace
 	// +kubebuilder:default=consul
-	ServiceDiscoveryNamespace string `json:"service-discovery-namespace,omitempty"`
+	ServiceDiscoveryNamespace *string `json:"serviceDiscoveryNamespace,omitempty"`
 	// pods define the pod specification used by the controller for LCM/resource allocation
-	Pod *PodSpec `json:"pods,omitempty"`
+	Pod *PodSpec `json:"pod,omitempty"`
 
 	MetaSpec `json:",inline"`
 }
@@ -69,16 +69,16 @@ type PodSpec struct {
 
 	// MaxReplicas defines the max expected replications of this pod
 	// +kubebuilder:default=8
-	MaxReplicas *int32 `json:"max-replicas,omitempty"`
+	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
 
 	// MaxJobNumber indication on how many jobs a given pods should hold
-	MaxJobNumber *int32 `json:"max-job-number,omitempty"`
+	MaxJobNumber *int32 `json:"maxJobNumber,omitempty"`
 
 	// PermissionRequests for RBAC rules required for this controller
 	// to function. The RBAC manager is responsible for assessing the requested
 	// permissions.
 	// +optional
-	PermissionRequests []rbacv1.PolicyRule `json:"permission-requests,omitempty"`
+	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
 
 	// Containers identifies the containers in the pod
 	Containers []*ContainerSpec `json:"containers,omitempty"`
@@ -99,7 +99,7 @@ type Extras struct {
 	Service     bool   `json:"service,omitempty"`
 	Volume      bool   `json:"volume,omitempty"`
 	Port        uint32 `json:"port,omitempty"`
-	TargetPort  uint32 `json:"target-port,omitempty"`
+	TargetPort  uint32 `json:"targetPort,omitempty"`
 	Protocol    string `json:"protocol,omitempty"`
 }
 

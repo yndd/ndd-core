@@ -29,9 +29,9 @@ import (
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
-func renderWebhookMutate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, revision pkgv1.PackageRevision, crds []*extv1.CustomResourceDefinition) *admissionv1.MutatingWebhookConfiguration { // nolint:interfacer,gocyclo
-	certificateName := getCertificateName(p.Name, podSpec.Name, c.Container.Name, extra.Name)
-	serviceName := getServiceName(p.Name, podSpec.Name, c.Container.Name, extra.Name)
+func renderWebhookMutate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, pr pkgv1.PackageRevision, crds []*extv1.CustomResourceDefinition) *admissionv1.MutatingWebhookConfiguration { // nolint:interfacer,gocyclo
+	certificateName := getCertificateName(pr.GetName(), c.Container.Name, extra.Name)
+	serviceName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
 
 	// TODO multiple crds
 	crd := crds[0]
@@ -47,7 +47,7 @@ func renderWebhookMutate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *p
 			Annotations: map[string]string{
 				"cert-manager.io/inject-ca-from": strings.Join([]string{p.Namespace, certificateName}, "/"),
 			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, pkgv1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Webhooks: []admissionv1.MutatingWebhook{
 			{
@@ -80,9 +80,9 @@ func renderWebhookMutate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *p
 	}
 }
 
-func renderWebhookValidate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, revision pkgv1.PackageRevision, crds []*extv1.CustomResourceDefinition) *admissionv1.ValidatingWebhookConfiguration { // nolint:interfacer,gocyclo
-	certificateName := getCertificateName(p.Name, podSpec.Name, c.Container.Name, extra.Name)
-	serviceName := getServiceName(p.Name, podSpec.Name, c.Container.Name, extra.Name)
+func renderWebhookValidate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, pr pkgv1.PackageRevision, crds []*extv1.CustomResourceDefinition) *admissionv1.ValidatingWebhookConfiguration { // nolint:interfacer,gocyclo
+	certificateName := getCertificateName(pr.GetName(), c.Container.Name, extra.Name)
+	serviceName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
 
 	// TODO multiple crds
 	crd := crds[0]
@@ -96,7 +96,7 @@ func renderWebhookValidate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c 
 			Annotations: map[string]string{
 				"cert-manager.io/inject-ca-from": strings.Join([]string{p.Namespace, certificateName}, "/"),
 			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, pkgv1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Webhooks: []admissionv1.ValidatingWebhook{
 			{

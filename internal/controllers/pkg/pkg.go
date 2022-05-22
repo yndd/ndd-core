@@ -19,8 +19,8 @@ package pkg
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/yndd/ndd-core/internal/controllers/pkg/manager"
 	"github.com/yndd/ndd-core/internal/controllers/pkg/composite"
+	"github.com/yndd/ndd-core/internal/controllers/pkg/manager"
 	"github.com/yndd/ndd-core/internal/controllers/pkg/resolver"
 	"github.com/yndd/ndd-core/internal/controllers/pkg/revision"
 	"github.com/yndd/ndd-core/internal/nddpkg"

@@ -26,9 +26,9 @@ import (
 	"github.com/yndd/ndd-runtime/pkg/meta"
 )
 
-func renderCertificate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, revision pkgv1.PackageRevision) *certv1.Certificate { // nolint:interfacer,gocyclo
-	certificateName := getCertificateName(p.Name, podSpec.Name, c.Container.Name, extra.Name)
-	serviceName := getServiceName(p.Name, podSpec.Name, c.Container.Name, extra.Name)
+func renderCertificate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, pr pkgv1.PackageRevision) *certv1.Certificate { // nolint:interfacer,gocyclo
+	certificateName := getCertificateName(pr.GetName(), c.Container.Name, extra.Name)
+	serviceName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
 
 	return &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -37,7 +37,7 @@ func renderCertificate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkg
 			Labels: map[string]string{
 				getLabelKey(extra.Name): serviceName,
 			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, pkgv1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Spec: certv1.CertificateSpec{
 			DNSNames: []string{
