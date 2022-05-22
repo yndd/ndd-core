@@ -136,8 +136,8 @@ type Reconciler struct {
 	newPackageRevisionList func() v1.PackageRevisionList
 }
 
-// SetupProvider adds a controller that reconciles Providers.
-func SetupProvider(mgr ctrl.Manager, l logging.Logger, namespace string) error {
+// Setup adds a controller that reconciles Providers.
+func Setup(mgr ctrl.Manager, l logging.Logger, namespace string) error {
 	name := "packages/" + strings.ToLower(v1.ProviderGroupKind)
 	np := func() v1.Package { return &v1.Provider{} }
 	nr := func() v1.PackageRevision { return &v1.ProviderRevision{} }

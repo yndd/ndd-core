@@ -83,8 +83,8 @@ type Reconciler struct {
 	record event.Recorder
 }
 
-// SetupProviderComposite adds a controller that reconciles CompositeProviders.
-func SetupCompositeProvider(mgr ctrl.Manager, l logging.Logger, namespace string) error {
+// Setup adds a controller that reconciles CompositeProviders.
+func Setup(mgr ctrl.Manager, l logging.Logger, namespace string) error {
 	name := "packages/" + strings.ToLower(pkgv1.ProviderGroupKind)
 
 	r := NewReconciler(mgr,
