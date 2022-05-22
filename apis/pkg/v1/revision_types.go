@@ -17,7 +17,6 @@ limitations under the License.
 package v1
 
 import (
-	//pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
 	nddv1 "github.com/yndd/ndd-runtime/apis/common/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -36,10 +35,14 @@ const (
 
 // PackageRevisionSpec defines the desired state of Revision
 type PackageRevisionSpec struct {
-	// ControllerConfigRef references a ControllerConfig resource that will be
+	// ControllerRef references a Controllerg resource that will be
 	// used to configure the packaged controller Deployment.
 	// +optional
-	ControllerConfigReference *nddv1.Reference `json:"controllerConfigRef,omitempty"`
+	ControllerReference *nddv1.Reference `json:"controllerRef,omitempty"`
+
+	// Kind is the kind of package
+	// +kubebuilder:validation:Enum=`worker`;`reconciler`
+	Kind Kind `json:"kind,omitempty"`
 
 	// DesiredState of the PackageRevision. Can be either Active or Inactive.
 	DesiredState PackageRevisionDesiredState `json:"desiredState"`
@@ -64,15 +67,6 @@ type PackageRevisionSpec struct {
 	// Revision number. Indicates when the revision will be garbage collected
 	// based on the parent's RevisionHistoryLimit.
 	Revision int64 `json:"revision"`
-
-	// AutoPilot specifies how the provider operates
-	// When set to true the provider applies delta/diff changes to the device
-	// manged resources automatically, if set to false the provider will report
-	// the delta and the operator should intervene what to do with the delta/diffs
-	// Defaults to true. Can be disabled by explicitly setting to flase.
-	// +optional
-	// +kubebuilder:default=true
-	AutoPilot *bool `json:"autoPilot,omitempty"`
 
 	// SkipDependencyResolution indicates to the package manager whether to skip
 	// resolving dependencies for a package. Setting this value to true may have

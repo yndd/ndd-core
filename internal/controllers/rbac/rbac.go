@@ -44,7 +44,6 @@ func Setup(mgr ctrl.Manager, l logging.Logger, mp ManagementPolicy, allowCluster
 	fns := []func(ctrl.Manager, logging.Logger) error{
 		//definition.Setup,
 		binding.SetupProvider,
-		binding.SetupIntent,
 	}
 
 	//if mp == ManagementPolicyAll {
@@ -58,9 +57,6 @@ func Setup(mgr ctrl.Manager, l logging.Logger, mp ManagementPolicy, allowCluster
 	}
 
 	if err := roles.SetupProvider(mgr, l, allowClusterRole); err != nil {
-		return err
-	}
-	if err := roles.SetupIntent(mgr, l, allowClusterRole); err != nil {
 		return err
 	}
 

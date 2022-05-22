@@ -1,4 +1,3 @@
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -125,7 +124,7 @@ rules:
 - apiGroups:
   - pkg.ndd.yndd.io
   resources:
-  - intentrevisions
+  - compositeproviders
   verbs:
   - create
   - delete
@@ -137,39 +136,13 @@ rules:
 - apiGroups:
   - pkg.ndd.yndd.io
   resources:
-  - intentrevisions/finalizers
+  - compositeproviders/finalizers
   verbs:
   - update
 - apiGroups:
   - pkg.ndd.yndd.io
   resources:
-  - intentrevisions/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - pkg.ndd.yndd.io
-  resources:
-  - intents
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - pkg.ndd.yndd.io
-  resources:
-  - intents/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - pkg.ndd.yndd.io
-  resources:
-  - intents/status
+  - compositeproviders/status
   verbs:
   - get
   - patch

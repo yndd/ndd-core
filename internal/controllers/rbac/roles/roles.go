@@ -303,12 +303,6 @@ func RenderClusterRoles(pr *v1.PackageRevision, crds []extv1.CustomResourceDefin
 	// directly to the service account that the provider/intent runs as.
 	var system *rbacv1.ClusterRole
 	switch (*pr).GetKind() {
-	case v1.IntentRevisionKind:
-		// Intent revision
-		system = &rbacv1.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{Name: SystemClusterIntentRoleName((*pr).GetRevName())},
-			Rules:      append(append(withVerbs(rules, verbsSystem), rulesSystemExtra...), (*pr).GetPermissionsRequests()...),
-		}
 	default:
 		// Provider revision
 		/*
@@ -333,9 +327,6 @@ func RenderClusterRoles(pr *v1.PackageRevision, crds []extv1.CustomResourceDefin
 		var ref metav1.OwnerReference
 
 		switch (*pr).GetKind() {
-		case v1.IntentRevisionKind:
-			// Intent revision
-			ref = meta.AsController(meta.TypedReferenceTo(*pr, v1.IntentRevisionGroupVersionKind))
 		default:
 			// Provider revision
 			ref = meta.AsController(meta.TypedReferenceTo(*pr, v1.ProviderRevisionGroupVersionKind))

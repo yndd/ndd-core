@@ -16,7 +16,6 @@ limitations under the License.
 
 package revision
 
-/*
 import (
 	"strings"
 
@@ -24,18 +23,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
-	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
+	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-runtime/pkg/meta"
 	"github.com/yndd/ndd-runtime/pkg/utils"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
-func buildProviderWebhookMutate(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string, crd *extv1.CustomResourceDefinition) *admissionv1.MutatingWebhookConfiguration { // nolint:interfacer,gocyclo
-	webhookCertificateName := strings.Join([]string{revision.GetName(), "webhook", "serving-cert"}, "-")
-	webhookServiceName := strings.Join([]string{revision.GetName(), "webhook", "svc"}, "-")
+func renderWebhookMutate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, revision pkgv1.PackageRevision, crds []*extv1.CustomResourceDefinition) *admissionv1.MutatingWebhookConfiguration { // nolint:interfacer,gocyclo
+	certificateName := getCertificateName(p.Name, podSpec.Name, c.Container.Name, extra.Name)
+	serviceName := getServiceName(p.Name, podSpec.Name, c.Container.Name, extra.Name)
 
-	//o := strings.Split(provider.GetName(), "-")
-
+	// TODO multiple crds
+	crd := crds[0]
 	v := getVersions(crd.Spec.Versions)
 
 	//+kubebuilder:webhook:path=/mutate-srl3-nddp-yndd-io,mutating=true,failurePolicy=fail,sideEffects=None,groups=srl3.nddp.yndd.io,resources="*",verbs=create;update,versions=v1alpha1,name=mutate.srl3.nddp.yndd.io,admissionReviewVersions=v1
@@ -44,20 +43,20 @@ func buildProviderWebhookMutate(provider *pkgmetav1.Provider, revision v1.Packag
 	sideEffect := admissionv1.SideEffectClassNone
 	return &admissionv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: strings.Join([]string{provider.GetName(), "mutating-webhook-configuration"}, "-"),
+			Name: strings.Join([]string{p.Name, podSpec.Name, c.Container.Name, "mutating-webhook-configuration"}, "-"),
 			Annotations: map[string]string{
-				"cert-manager.io/inject-ca-from": strings.Join([]string{namespace, webhookCertificateName}, "/"),
+				"cert-manager.io/inject-ca-from": strings.Join([]string{p.Namespace, certificateName}, "/"),
 			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Webhooks: []admissionv1.MutatingWebhook{
 			{
-				Name:                    strings.Join([]string{"m" + crd.Spec.Names.Singular, crd.Spec.Group}, "."),
+				Name:                    getMutatingWebhookName(crd.Spec.Names.Singular, crd.Spec.Group),
 				AdmissionReviewVersions: []string{"v1"},
 				ClientConfig: admissionv1.WebhookClientConfig{
 					Service: &admissionv1.ServiceReference{
-						Name:      webhookServiceName,
-						Namespace: namespace,
+						Name:      serviceName,
+						Namespace: p.Namespace,
 						Path:      utils.StringPtr(strings.Join([]string{"/mutate", strings.ReplaceAll(crd.Spec.Group, ".", "-"), v[0], crd.Spec.Names.Singular}, "-")),
 					},
 				},
@@ -81,30 +80,32 @@ func buildProviderWebhookMutate(provider *pkgmetav1.Provider, revision v1.Packag
 	}
 }
 
-func buildProviderWebhookValidate(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string, crd *extv1.CustomResourceDefinition) *admissionv1.ValidatingWebhookConfiguration { // nolint:interfacer,gocyclo
-	webhookCertificateName := strings.Join([]string{revision.GetName(), "webhook", "serving-cert"}, "-")
-	webhookServiceName := strings.Join([]string{revision.GetName(), "webhook", "svc"}, "-")
+func renderWebhookValidate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, revision pkgv1.PackageRevision, crds []*extv1.CustomResourceDefinition) *admissionv1.ValidatingWebhookConfiguration { // nolint:interfacer,gocyclo
+	certificateName := getCertificateName(p.Name, podSpec.Name, c.Container.Name, extra.Name)
+	serviceName := getServiceName(p.Name, podSpec.Name, c.Container.Name, extra.Name)
 
+	// TODO multiple crds
+	crd := crds[0]
 	v := getVersions(crd.Spec.Versions)
 
 	failurePolicy := admissionv1.Fail
 	sideEffect := admissionv1.SideEffectClassNone
 	return &admissionv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: strings.Join([]string{provider.GetName(), "validating-webhook-configuration"}, "-"),
+			Name: strings.Join([]string{p.Name, podSpec.Name, c.Container.Name, "validating-webhook-configuration"}, "-"),
 			Annotations: map[string]string{
-				"cert-manager.io/inject-ca-from": strings.Join([]string{namespace, webhookCertificateName}, "/"),
+				"cert-manager.io/inject-ca-from": strings.Join([]string{p.Namespace, certificateName}, "/"),
 			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Webhooks: []admissionv1.ValidatingWebhook{
 			{
-				Name:                    strings.Join([]string{"v" + crd.Spec.Names.Singular, crd.Spec.Group}, "."),
+				Name:                    getValidatingWebhookName(crd.Spec.Names.Singular, crd.Spec.Group),
 				AdmissionReviewVersions: []string{"v1"},
 				ClientConfig: admissionv1.WebhookClientConfig{
 					Service: &admissionv1.ServiceReference{
-						Name:      webhookServiceName,
-						Namespace: namespace,
+						Name:      serviceName,
+						Namespace: p.Namespace,
 						Path:      utils.StringPtr(strings.Join([]string{"/validate", strings.ReplaceAll(crd.Spec.Group, ".", "-"), v[0], crd.Spec.Names.Singular}, "-")),
 					},
 				},
@@ -137,7 +138,6 @@ func getVersions(crdVersions []extv1.CustomResourceDefinitionVersion) []string {
 				found = true
 				break
 			}
-
 		}
 		if !found {
 			versions = append(versions, crdVersion.Name)
@@ -145,4 +145,3 @@ func getVersions(crdVersions []extv1.CustomResourceDefinitionVersion) []string {
 	}
 	return versions
 }
-*/

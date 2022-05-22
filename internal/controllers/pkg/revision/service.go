@@ -17,124 +17,50 @@ limitations under the License.
 package revision
 
 import (
-	"strconv"
-	"strings"
-
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
 	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
-	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-runtime/pkg/meta"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	corev1 "k8s.io/api/core/v1"
 )
 
-const (
-	serviceSuffix = "svc"
-	certSuffix    = "serving-cert"
+func renderService(cc *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, revision pkgv1.PackageRevision) *corev1.Service { // nolint:interfacer,gocyclo
+	serviceName := getServiceName(cc.Name, podSpec.Name, c.Container.Name, extra.Name)
 
-	metricsKey  = "metrics"
-	profilerKey = "profiler"
-	revisionKey = "revision"
-	//packageNamespace = "pkg.ndd.yndd.io"
-)
-
-func buildIntentService(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	//gnmiLabelName := strings.Join([]string{pkgmetav1.PrefixGnmiService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
-	gnmiLabelName := strings.Join([]string{pkgmetav1.PrefixGnmiService, revision.GetName()}, "-")
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      gnmiLabelName,
-			Namespace: namespace,
-			Labels: map[string]string{
-				pkgmetav1.LabelPkgMeta: intent.GetName(),
-			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.IntentRevisionGroupVersionKind))},
-		},
-		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				//pkgmetav1.LabelPkgMeta: intent.GetName(),
-				"pkg.ndd.yndd.io/revision": revision.GetName(),
-			},
-			Ports: []corev1.ServicePort{
-				{
-					Name:       "gnmi",
-					Port:       pkgmetav1.GnmiServerPort,
-					TargetPort: intstr.FromInt(pkgmetav1.GnmiServerPort),
-					Protocol:   "TCP",
-				},
-			},
-		},
+	port := int32(443)
+	if extra.Port != 0 {
+		port = int32(extra.Port)
 	}
-}
-
-func buildIntentMetricServiceHTTPS(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
-	metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "https"}, "-")
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      metricLabelName,
-			Namespace: namespace,
-			/*
-				Annotations: map[string]string{
-					"prometheus.io/path":   "/metrics",
-					"prometheus.io/scheme": "https",
-					"prometheus.io/insecure_skip_verify": "true",
-					"prometheus.io/port":   strconv.Itoa(pkgmetav1.MetricServerPortHttps),
-					"prometheus.io/scrape": "true",
-				},
-			*/
-			Labels: map[string]string{
-				pkgmetav1.LabelPkgMeta: metricLabelName,
-			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.IntentRevisionGroupVersionKind))},
-		},
-		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				pkgmetav1.LabelPkgMeta: metricLabelName,
-				//"pkg.ndd.yndd.io/revision": revision.GetName(),
-			},
-			Ports: []corev1.ServicePort{
-				{
-					Name:       "metrics",
-					Port:       pkgmetav1.MetricServerPortHttps,
-					TargetPort: intstr.FromString("https"),
-					Protocol:   "TCP",
-				},
-			},
-		},
+	protocol := corev1.Protocol("TCP")
+	if extra.Protocol != "" {
+		protocol = corev1.Protocol(extra.Protocol)
 	}
-}
+	targetPort := int(8443)
+	if extra.TargetPort != 0 {
+		targetPort = int(targetPort)
+	}
 
-func buildIntentMetricServiceHTTP(intent *pkgmetav1.Intent, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
-	metricLabelNameHttp := strings.Join([]string{pkgmetav1.PrefixMetricService, revision.GetName(), "http"}, "-")
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      metricLabelNameHttp,
-			Namespace: namespace,
-			Annotations: map[string]string{
-				"prometheus.io/path":   "/metrics",
-				"prometheus.io/port":   strconv.Itoa(pkgmetav1.MetricServerPortHttp),
-				"prometheus.io/scrape": "true",
-			},
+			Name:      serviceName,
+			Namespace: cc.Namespace,
 			Labels: map[string]string{
-				pkgmetav1.LabelHttpPkgMeta: metricLabelNameHttp,
+				getLabelKey(extra.Name): serviceName,
 			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.IntentRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				pkgmetav1.LabelHttpPkgMeta: metricLabelNameHttp,
-				//"pkg.ndd.yndd.io/revision": revision.GetName(),
+				getLabelKey(extra.Name): serviceName,
 			},
 			Ports: []corev1.ServicePort{
 				{
-					Name:       "metrics",
-					Port:       pkgmetav1.MetricServerPortHttp,
-					TargetPort: intstr.FromInt(pkgmetav1.MetricServerPortHttp),
-					Protocol:   "TCP",
+					Name:       extra.Name,
+					Port:       port,
+					TargetPort: intstr.FromInt(targetPort),
+					Protocol:   protocol,
 				},
 			},
 		},
@@ -142,34 +68,12 @@ func buildIntentMetricServiceHTTP(intent *pkgmetav1.Intent, revision v1.PackageR
 }
 
 /*
-func buildProviderService(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	gnmiServiceName := strings.Join([]string{revision.GetName(), "gnmi", "svc"}, "-")
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      gnmiServiceName,
-			Namespace: namespace,
-			Labels: map[string]string{
-				"gnmi": gnmiServiceName,
-			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
-		},
-		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				//pkgmetav1.LabelPkgMeta: intent.GetName(),
-				"gnmi": gnmiServiceName,
-			},
-			Ports: []corev1.ServicePort{
-				{
-					Name:       "gnmi",
-					Port:       pkgmetav1.GnmiServerPort,
-					TargetPort: intstr.FromInt(pkgmetav1.GnmiServerPort),
-					Protocol:   "TCP",
-				},
-			},
-		},
-	}
-}
-*/
+const (
+	metricsKey  = "metrics"
+	profilerKey = "profiler"
+	revisionKey = "revision"
+	//packageNamespace = "pkg.ndd.yndd.io"
+)
 
 func buildProviderMetricServiceHTTPS(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
 	metricHTTPSServiceName := strings.Join([]string{provider.GetName(), metricsKey, serviceSuffix}, "-")
@@ -218,35 +122,6 @@ func buildProviderProfileService(provider *pkgmetav1.Provider, revision v1.Packa
 					Name:       profilerKey,
 					Port:       8000,
 					TargetPort: intstr.FromInt(8000),
-					Protocol:   "TCP",
-				},
-			},
-		},
-	}
-}
-
-/*
-func buildProviderWebhookService(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string) *corev1.Service { // nolint:interfacer,gocyclo
-	//metricLabelName := strings.Join([]string{pkgmetav1.PrefixMetricService, strings.Split(revision.GetName(), "-")[len(strings.Split(revision.GetName(), "-"))-1]}, "-")
-	webhookServiceName := strings.Join([]string{revision.GetName(), "webhook", "svc"}, "-")
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      webhookServiceName,
-			Namespace: namespace,
-			Labels: map[string]string{
-				"webhook": webhookServiceName,
-			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
-		},
-		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				"webhook": webhookServiceName,
-			},
-			Ports: []corev1.ServicePort{
-				{
-					Name:       "webhook",
-					Port:       443,
-					TargetPort: intstr.FromInt(9443),
 					Protocol:   "TCP",
 				},
 			},

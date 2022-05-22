@@ -88,25 +88,15 @@ var buildCmd = &cobra.Command{
 		}
 
 		var img v1.Image
-		switch packageType {
-		case "intent":
-			img, err = nddpkg.Build(context.Background(),
-				parser.NewFsBackend(buildChild.fs, parser.FsDir(root), parser.FsFilters(buildFilters(root, ignore)...)),
-				parser.New(metaScheme, objScheme),
-				nddpkg.NewIntentLinter())
-			if err != nil {
-				return errors.Wrap(err, errBuildPackage)
-			}
-		default:
-			img, err = nddpkg.Build(context.Background(),
-				parser.NewFsBackend(buildChild.fs, parser.FsDir(root), parser.FsFilters(buildFilters(root, ignore)...)),
-				parser.New(metaScheme, objScheme),
-				nddpkg.NewProviderLinter())
-			if err != nil {
-				return errors.Wrap(err, errBuildPackage)
-			}
+		img, err = nddpkg.Build(context.Background(),
+			parser.NewFsBackend(buildChild.fs, parser.FsDir(root), parser.FsFilters(buildFilters(root, ignore)...)),
+			parser.New(metaScheme, objScheme),
+			nddpkg.NewProviderLinter())
+		if err != nil {
+			return errors.Wrap(err, errBuildPackage)
 		}
-		fmt.Printf("packageType: %s\n", packageType)
+
+		//fmt.Printf("packageType: %s\n", packageType)
 
 		hash, err := img.Digest()
 		if err != nil {

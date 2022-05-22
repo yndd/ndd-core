@@ -59,22 +59,6 @@ var (
 	ProviderRevisionGroupVersionKind = GroupVersion.WithKind(ProviderRevisionKind)
 )
 
-// Intent type metadata.
-var (
-	IntentKind             = reflect.TypeOf(Intent{}).Name()
-	IntentGroupKind        = schema.GroupKind{Group: Group, Kind: IntentKind}.String()
-	IntentKindAPIVersion   = IntentKind + "." + GroupVersion.String()
-	IntentGroupVersionKind = GroupVersion.WithKind(IntentKind)
-)
-
-// IntentRevision type metadata.
-var (
-	IntentRevisionKind             = reflect.TypeOf(IntentRevision{}).Name()
-	IntentRevisionGroupKind        = schema.GroupKind{Group: Group, Kind: IntentRevisionKind}.String()
-	IntentRevisionKindAPIVersion   = IntentRevisionKind + "." + GroupVersion.String()
-	IntentRevisionGroupVersionKind = GroupVersion.WithKind(IntentRevisionKind)
-)
-
 // Lock type metadata.
 var (
 	LockKind             = reflect.TypeOf(Lock{}).Name()

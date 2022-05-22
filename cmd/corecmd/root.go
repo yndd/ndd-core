@@ -95,11 +95,9 @@ func init() {
 	i := initializer.New(cl,
 		initializer.NewLockObject(),
 		initializer.NewCRDWaiter([]string{
-			//fmt.Sprintf("%s.%s", "networknodes", dvrv1.Group),
-			fmt.Sprintf("%s.%s", "intents", pkgv1.Group),
 			fmt.Sprintf("%s.%s", "providers", pkgv1.Group),
 			fmt.Sprintf("%s.%s", "providerrevisions", pkgv1.Group),
-			fmt.Sprintf("%s.%s", "intentrevisions", pkgv1.Group),
+			fmt.Sprintf("%s.%s", "compositeproviders", pkgv1.Group),
 			fmt.Sprintf("%s.%s", "providers", pkgmetav1.Group),
 		}, time.Minute, time.Second, logging.NewLogrLogger(zlog.WithName("nddcoreinit"))),
 	)

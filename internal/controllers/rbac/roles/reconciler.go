@@ -135,51 +135,6 @@ func SetupProvider(mgr ctrl.Manager, log logging.Logger, allowClusterRole string
 		))
 }
 
-// Setup adds a controller that reconciles a IntentRevision by creating a
-// series of opinionated ClusterRoles that may be bound to allow access to the
-// resources it defines.
-func SetupIntent(mgr ctrl.Manager, log logging.Logger, allowClusterRole string) error {
-	name := "rbac/" + strings.ToLower(v1.IntentRevisionGroupKind)
-	np := func() v1.Package { return &v1.Intent{} }
-	nr := func() v1.PackageRevision { return &v1.IntentRevision{} }
-	nrl := func() v1.PackageRevisionList { return &v1.IntentRevisionList{} }
-
-	if allowClusterRole != "" {
-
-		h := &EnqueueRequestForAllRevisionsWithRequests{
-			client:          mgr.GetClient(),
-			clusterRoleName: allowClusterRole}
-
-		return ctrl.NewControllerManagedBy(mgr).
-			Named(name).
-			For(&v1.IntentRevision{}).
-			Owns(&rbacv1.ClusterRole{}).
-			Watches(&source.Kind{Type: &rbacv1.ClusterRole{}}, h).
-			WithOptions(kcontroller.Options{MaxConcurrentReconciles: maxConcurrency}).
-			Complete(NewReconciler(mgr,
-				WithNewPackageFn(np),
-				WithNewPackageRevisionFn(nr),
-				WithNewPackageRevisionListFn(nrl),
-				WithLogger(log.WithValues("controller", name)),
-				WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
-				WithPermissionRequestsValidator(NewClusterRoleBackedValidator(mgr.GetClient(), allowClusterRole)),
-			))
-	}
-
-	return ctrl.NewControllerManagedBy(mgr).
-		Named(name).
-		For(&v1.IntentRevision{}).
-		Owns(&rbacv1.ClusterRole{}).
-		WithOptions(kcontroller.Options{MaxConcurrentReconciles: maxConcurrency}).
-		Complete(NewReconciler(mgr,
-			WithNewPackageFn(np),
-			WithNewPackageRevisionFn(nr),
-			WithNewPackageRevisionListFn(nrl),
-			WithLogger(log.WithValues("controller", name)),
-			WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
-		))
-}
-
 // ReconcilerOption is used to configure the Reconciler.
 type ReconcilerOption func(*Reconciler)
 

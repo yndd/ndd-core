@@ -22,17 +22,15 @@ import (
 
 // PackageSpec defines the desired state of Package
 type PackageSpec struct {
-	// Package is the name of the package that is being requested.
-	Package string `json:"package"`
+	// Name is the name of the package
+	Name string `json:"name,omitempty"`
 
-	// AutoPilot specifies how the provider operates
-	// When set to true the provider applies delta/diff changes to the device
-	// manged resources automatically, if set to false the provider will report
-	// the delta and the operator should intervene what to do with the delta/diffs
-	// Defaults to true. Can be disabled by explicitly setting to flase.
-	// +optional
-	// +kubebuilder:default=true
-	AutoPilot *bool `json:"autoPilot,omitempty"`
+	// Kind is the kind of package
+	// +kubebuilder:validation:Enum=`worker`;`reconciler`
+	Kind Kind `json:"kind,omitempty"`
+
+	// Package is the name of the image of the package that is being requested.
+	Package string `json:"package"`
 
 	// RevisionActivationPolicy specifies how the package controller should
 	// update from one revision to the next. Options are Automatic or Manual.

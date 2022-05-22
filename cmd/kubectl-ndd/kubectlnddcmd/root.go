@@ -63,7 +63,6 @@ func init() {
 	buildChild = &BuildChild{
 		fs:             afero.NewOsFs(),
 		providerLinter: nddpkg.NewProviderLinter(),
-		intentLinter:   nddpkg.NewIntentLinter(),
 	}
 	pushChild = &PushChild{
 		fs: afero.NewOsFs(),

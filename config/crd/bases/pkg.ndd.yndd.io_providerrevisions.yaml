@@ -1,10 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
   name: providerrevisions.pkg.ndd.yndd.io
 spec:
@@ -63,18 +62,9 @@ spec:
           spec:
             description: PackageRevisionSpec defines the desired state of Revision
             properties:
-              autoPilot:
-                default: true
-                description: AutoPilot specifies how the provider operates When set
-                  to true the provider applies delta/diff changes to the device manged
-                  resources automatically, if set to false the provider will report
-                  the delta and the operator should intervene what to do with the
-                  delta/diffs Defaults to true. Can be disabled by explicitly setting
-                  to flase.
-                type: boolean
-              controllerConfigRef:
-                description: ControllerConfigRef references a ControllerConfig resource
-                  that will be used to configure the packaged controller Deployment.
+              controllerRef:
+                description: ControllerRef references a Controllerg resource that
+                  will be used to configure the packaged controller Deployment.
                 properties:
                   name:
                     description: Name of the referenced object.
@@ -85,6 +75,12 @@ spec:
               desiredState:
                 description: DesiredState of the PackageRevision. Can be either Active
                   or Inactive.
+                type: string
+              kind:
+                description: Kind is the kind of package
+                enum:
+                - worker
+                - reconciler
                 type: string
               packageImage:
                 description: Package image used by install Pod to extract package

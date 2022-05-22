@@ -21,15 +21,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ProviderSpec specifies details about a request to install a provider to
-// the network device driver.
+// ProviderSpec specifies details about a request to install a provider
 type ProviderSpec struct {
 	PackageSpec `json:",inline"`
 
-	// ControllerConfigRef references a ControllerConfig resource that will be
+	// ControllerRef references a ControllerConfig resource that will be
 	// used to configure the packaged controller Deployment.
 	// +optional
-	ControllerConfigReference *nddv1.Reference `json:"controllerConfigRef,omitempty"`
+	ControllerReference *nddv1.Reference `json:"controllerRef,omitempty"`
 }
 
 // ProviderStatus defines the observed state of Provider

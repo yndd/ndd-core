@@ -81,41 +81,6 @@ var updateCmd = &cobra.Command{
 			_, err = fmt.Fprintf(os.Stdout, "%s/%s updated\n", strings.ToLower(nddv1.ProviderGroupKind), providerName)
 			return err
 		}
-		if intentName != "" {
-			pKey = types.NamespacedName{
-				Namespace: "default",
-				Name:      intentName,
-			}
-			preInt := &nddv1.Intent{}
-			if err := c.Get(context.Background(), pKey, preInt); err != nil {
-				return errors.Wrap(warnIfNotFound(err), "cannot update intent")
-			}
-			pkg := preInt.Spec.Package
-			pkgReference, err := name.ParseReference(pkg, name.WithDefaultRegistry(""))
-			if err != nil {
-				return errors.Wrap(warnIfNotFound(err), "cannot update intent")
-			}
-			newPkg := ""
-			if strings.HasPrefix(packageTag, "sha256") {
-				newPkg = pkgReference.Context().Digest(packageTag).Name()
-			} else {
-				newPkg = pkgReference.Context().Tag(packageTag).Name()
-			}
-			preInt.Spec.Package = newPkg
-			//req, err := json.Marshal(preProv)
-			//if err != nil {
-			//	return errors.Wrap(warnIfNotFound(err), "cannot update provider")
-			//}
-			if err := c.Update(context.Background(), preInt); err != nil {
-				return errors.Wrap(warnIfNotFound(err), "cannot update intent")
-			}
-
-			//res, err := kube.Providers().Patch(context.Background(), providerName, types.MergePatchType, req, metav1.PatchOptions{})
-			//if err != nil {
-			//}
-			_, err = fmt.Fprintf(os.Stdout, "%s/%s updated\n", strings.ToLower(nddv1.ProviderGroupKind), intentName)
-			return err
-		}
 		return nil
 	},
 }
@@ -123,7 +88,6 @@ var updateCmd = &cobra.Command{
 func init() {
 	packageCmd.AddCommand(updateCmd)
 	updateCmd.Flags().StringVarP(&providerName, "providerName", "", "", "Name of Provider.")
-	updateCmd.Flags().StringVarP(&intentName, "intentName", "", "", "Name of Intent.")
 	updateCmd.Flags().StringVarP(&packageTag, "Tag", "t", "", "Tag of the package to be pushed. Must be a valid OCI image tag.")
 
 }
