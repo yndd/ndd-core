@@ -65,14 +65,14 @@ type PodSpec struct {
 
 	// Replicas defines the amount of replicas expected
 	// +kubebuilder:default=1
-	Replicas int `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// MaxReplicas defines the max expected replications of this pod
 	// +kubebuilder:default=8
-	MaxReplicas int `json:"max-replicas,omitempty"`
+	MaxReplicas *int32 `json:"max-replicas,omitempty"`
 
 	// MaxJobNumber indication on how many jobs a given pods should hold
-	MaxJobNumber int `json:"max-job-number,omitempty"`
+	MaxJobNumber *int32 `json:"max-job-number,omitempty"`
 
 	// PermissionRequests for RBAC rules required for this controller
 	// to function. The RBAC manager is responsible for assessing the requested
