@@ -19,44 +19,88 @@ package v1
 import (
 	"reflect"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-type ControllerType string
+type ServiceDiscoveryType string
 
 const (
-	ControllerTypeController ControllerType = "controller"
-	ControllerTypeIntent     ControllerType = "intent"
-	ControllerTypeProvider   ControllerType = "provider"
+	ServiceDiscoveryTypeConsul ServiceDiscoveryType = "consul"
+	ServiceDiscoveryTypeK8s    ServiceDiscoveryType = "k8s"
+)
+
+type DeploymentType string
+
+const (
+	DeploymentTypeStatefulset DeploymentType = "statefulset"
+	DeploymentTypeDeployment  DeploymentType = "deployment"
 )
 
 // ProviderSpec specifies the configuration of a Provider.
 type ProviderSpec struct {
-	// Type is the type of provider
-	// +kubebuilder:default=controller
-	Type ControllerType `json:"type,omitempty"`
-
-	// Configuration for the packaged Provider's controller.
-	Controller ControllerSpec `json:"controller"`
+	// ServiceDiscovery is the type of service discovery
+	// +kubebuilder:validation:Enum=`consul`;`k8s`
+	// +kubebuilder:default=consul
+	ServiceDiscovery *ServiceDiscoveryType `json:"serviceDiscovery,omitempty"`
+	// ServiceDiscoverylNamespace is the name of the service discovery namespace
+	// +kubebuilder:default=consul
+	ServiceDiscoveryNamespace *string `json:"serviceDiscoveryNamespace,omitempty"`
+	// pods define the pod specification used by the controller for LCM/resource allocation
+	Pod *PodSpec `json:"pod,omitempty"`
 
 	MetaSpec `json:",inline"`
 }
 
-// ControllerSpec specifies the configuration for the packaged Provider
-// controller.
-type ControllerSpec struct {
-	// Image is the packaged Provider controller image.
-	Image string `json:"image"`
+type PodSpec struct {
+	// Name of the pod
+	Name string `json:"name,omitempty"`
 
-	// PermissionRequests for RBAC rules required for this provider's controller
+	// Type is the type of the deployment
+	// +kubebuilder:validation:Enum=`statefulset`;`deployment`
+	// +kubebuilder:default=deployment
+	Type DeploymentType `json:"type,omitempty"`
+
+	// Replicas defines the amount of replicas expected
+	// +kubebuilder:default=1
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// MaxReplicas defines the max expected replications of this pod
+	// +kubebuilder:default=8
+	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
+
+	// MaxJobNumber indication on how many jobs a given pods should hold
+	MaxJobNumber *int32 `json:"maxJobNumber,omitempty"`
+
+	// PermissionRequests for RBAC rules required for this controller
 	// to function. The RBAC manager is responsible for assessing the requested
 	// permissions.
 	// +optional
 	PermissionRequests []rbacv1.PolicyRule `json:"permissionRequests,omitempty"`
 
-	//Pods []PodSpec `json:"pods,omitempty"`
+	// Containers identifies the containers in the pod
+	Containers []*ContainerSpec `json:"containers,omitempty"`
+}
+
+type ContainerSpec struct {
+	// Provide the container info
+	Container *corev1.Container `json:"container,omitempty"`
+
+	// Extras is certificates, volumes, webhook, etc
+	Extras []*Extras `json:"extras,omitempty"`
+}
+
+type Extras struct {
+	Name        string `json:"name"`
+	Webhook     bool   `json:"webhook,omitempty"`
+	Certificate bool   `json:"certificate,omitempty"`
+	Service     bool   `json:"service,omitempty"`
+	Volume      bool   `json:"volume,omitempty"`
+	Port        uint32 `json:"port,omitempty"`
+	TargetPort  uint32 `json:"targetPort,omitempty"`
+	Protocol    string `json:"protocol,omitempty"`
 }
 
 // +kubebuilder:object:root=true

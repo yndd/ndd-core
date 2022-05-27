@@ -83,29 +83,6 @@ func SetupProvider(mgr ctrl.Manager, log logging.Logger) error {
 			WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
-// Setup adds a controller that reconciles a IntentRevision by creating a
-// ClusterRoleBinding that binds a Intent's service account to its system
-// ClusterRole.
-func SetupIntent(mgr ctrl.Manager, log logging.Logger) error {
-	name := "rbac/" + strings.ToLower(v1.IntentRevisionGroupKind)
-	np := func() v1.Package { return &v1.Intent{} }
-	nr := func() v1.PackageRevision { return &v1.IntentRevision{} }
-	nrl := func() v1.PackageRevisionList { return &v1.IntentRevisionList{} }
-
-	return ctrl.NewControllerManagedBy(mgr).
-		Named(name).
-		For(&v1.IntentRevision{}).
-		Owns(&rbacv1.ClusterRoleBinding{}).
-		Watches(&source.Kind{Type: &corev1.ServiceAccount{}}, &handler.EnqueueRequestForOwner{OwnerType: &v1.IntentRevision{}}).
-		WithOptions(kcontroller.Options{MaxConcurrentReconciles: maxConcurrency}).
-		Complete(NewReconciler(mgr,
-			WithNewPackageFn(np),
-			WithNewPackageRevisionFn(nr),
-			WithNewPackageRevisionListFn(nrl),
-			WithLogger(log.WithValues("controller", name)),
-			WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
-}
-
 // ReconcilerOption is used to configure the Reconciler.
 type ReconcilerOption func(*Reconciler)
 
@@ -238,11 +215,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	var cbrMetricName string
 	var ref metav1.OwnerReference
 	switch pr.GetKind() {
-	case v1.IntentRevisionKind:
-		// Intent Revision
-		cbrName = roles.SystemClusterIntentRoleName(pr.GetName())
-		cbrMetricName = roles.SystemClusterIntentMetricRoleName(pr.GetName())
-		ref = meta.AsController(meta.TypedReferenceTo(pr, v1.IntentRevisionGroupVersionKind))
 	default:
 		// Provider Revision
 		cbrName = roles.SystemClusterProviderRoleName(pr.GetName())

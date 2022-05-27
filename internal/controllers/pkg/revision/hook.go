@@ -18,12 +18,12 @@ package revision
 
 import (
 	"context"
+	"strings"
 
 	"github.com/pkg/errors"
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
-	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
+	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-core/internal/nddpkg"
-	nddv1 "github.com/yndd/ndd-runtime/apis/common/v1"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"github.com/yndd/ndd-runtime/pkg/resource"
 	appsv1 "k8s.io/api/apps/v1"
@@ -36,7 +36,7 @@ import (
 const (
 	errNotProvider                   = "not a provider package"
 	errNotProviderRevision           = "not a provider revision"
-	errControllerConfig              = "cannot get referenced controller config"
+	errCompositeProvider             = "cannot get referenced composite provider"
 	errGetCrd                        = "cannot get crd"
 	errDeleteProviderDeployment      = "cannot delete provider package deployment"
 	errDeleteProviderSA              = "cannot delete provider package service account"
@@ -45,8 +45,9 @@ const (
 	errDeleteProviderMutateWebhook   = "cannot delete provider package mutate webhook"
 	errDeleteProviderValidateWebhook = "cannot delete provider package validate webhook"
 	errApplyProviderDeployment       = "cannot apply provider package deployment"
+	errApplyProviderStatefulset      = "cannot apply provider package statefulset"
 	errApplyProviderCertificate      = "cannot apply provider package certificate"
-	errApplyProviderSA               = "cannot apply provider package service account"
+	errApplyProviderServiceAccount   = "cannot apply provider package service account"
 	errApplyProviderService          = "cannot apply provider package service"
 	errApplyProviderMutateWebhook    = "cannot apply provider package mutate webhook"
 	errApplyProviderValidateWebhook  = "cannot apply provider package validate webhook"
@@ -68,123 +69,10 @@ const (
 // A Hooks performs operations before and after a revision establishes objects.
 type Hooks interface {
 	// Pre performs operations meant to happen before establishing objects.
-	Pre(context.Context, runtime.Object, v1.PackageRevision, []string) error
+	Pre(context.Context, runtime.Object, pkgv1.PackageRevision, []string) error
 
 	// Post performs operations meant to happen after establishing objects.
-	Post(context.Context, runtime.Object, v1.PackageRevision, []string) error
-}
-
-// IntentHooks performs operations for a Intent package that requires a
-// controller before and after the revision establishes objects.
-type IntentHooks struct {
-	client    resource.ClientApplicator
-	namespace string
-	log       logging.Logger
-}
-
-// NewIntentHooks creates a new IntentHooks.
-func NewIntentHooks(client resource.ClientApplicator, namespace string) *IntentHooks {
-	return &IntentHooks{
-		client:    client,
-		namespace: namespace,
-	}
-}
-
-// Pre cleans up a packaged controller and service account if the revision is
-// inactive.
-func (h *IntentHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision, crdNames []string) error {
-	po, _ := nddpkg.TryConvert(pkg, &pkgmetav1.Intent{})
-	pkgIntent, ok := po.(*pkgmetav1.Intent)
-	if !ok {
-		return errors.New(errNotIntent)
-	}
-
-	// TBD updates
-	_, ok = pr.(*v1.IntentRevision)
-	if !ok {
-		return errors.New(errNotIntentRevision)
-	}
-
-	//provRev.Status.PermissionRequests = pkgProvider.Spec.Controller.PermissionRequests
-
-	// Do not clean up SA and controller if revision is not inactive.
-	if pr.GetDesiredState() != v1.PackageRevisionInactive {
-		return nil
-	}
-	cc, err := h.getControllerConfig(ctx, pr)
-	if err != nil {
-		return errors.Wrap(err, errControllerConfig)
-	}
-	svc := buildIntentService(pkgIntent, pr, h.namespace)
-	if err := h.client.Delete(ctx, svc); resource.IgnoreNotFound(err) != nil {
-		return errors.Wrap(err, errDeleteIntentService)
-	}
-	s, d := buildIntentDeployment(pkgIntent, pr, cc, h.namespace)
-	if err := h.client.Delete(ctx, d); resource.IgnoreNotFound(err) != nil {
-		return errors.Wrap(err, errDeleteIntentDeployment)
-	}
-	if err := h.client.Delete(ctx, s); resource.IgnoreNotFound(err) != nil {
-		return errors.Wrap(err, errDeleteIntentSA)
-	}
-	return nil
-}
-
-// Post creates a packaged provider controller and service account if the
-// revision is active.
-func (h *IntentHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision, crdNames []string) error {
-	po, _ := nddpkg.TryConvert(pkg, &pkgmetav1.Intent{})
-	pkgIntent, ok := po.(*pkgmetav1.Intent)
-	if !ok {
-		return errors.New("not a intent package")
-	}
-	if pr.GetDesiredState() != v1.PackageRevisionActive {
-		return nil
-	}
-	cc, err := h.getControllerConfig(ctx, pr)
-	if err != nil {
-		return errors.Wrap(err, errControllerConfig)
-	}
-	svc := buildIntentService(pkgIntent, pr, h.namespace)
-	if err := h.client.Apply(ctx, svc); err != nil {
-		return errors.Wrap(err, errDeleteIntentService)
-	}
-	svcMetricHttps := buildIntentMetricServiceHTTPS(pkgIntent, pr, h.namespace)
-	if err := h.client.Apply(ctx, svcMetricHttps); err != nil {
-		return errors.Wrap(err, errDeleteIntentService)
-	}
-	svcMetricHttp := buildIntentMetricServiceHTTP(pkgIntent, pr, h.namespace)
-	if err := h.client.Apply(ctx, svcMetricHttp); err != nil {
-		return errors.Wrap(err, errDeleteIntentService)
-	}
-	s, d := buildIntentDeployment(pkgIntent, pr, cc, h.namespace)
-	if err := h.client.Apply(ctx, s); err != nil {
-		return errors.Wrap(err, errApplyProviderSA)
-	}
-	if err := h.client.Apply(ctx, d); err != nil {
-		return errors.Wrap(err, errApplyProviderDeployment)
-	}
-	pr.SetControllerReference(nddv1.Reference{Name: d.GetName()})
-
-	for _, c := range d.Status.Conditions {
-		if c.Type == appsv1.DeploymentAvailable {
-			if c.Status == corev1.ConditionTrue {
-				return nil
-			}
-			return errors.Errorf("%s: %s", errUnavailableProviderDeployment, c.Message)
-		}
-	}
-	return nil
-}
-
-func (h *IntentHooks) getControllerConfig(ctx context.Context, pr v1.PackageRevision) (*v1.ControllerConfig, error) {
-	var cc *v1.ControllerConfig
-	if pr.GetControllerConfigRef() != nil {
-		cc = &v1.ControllerConfig{}
-		if err := h.client.Get(ctx, types.NamespacedName{Name: pr.GetControllerConfigRef().Name}, cc); err != nil {
-			return nil, errors.Wrap(err, errControllerConfig)
-		}
-	}
-	return cc, nil
+	Post(context.Context, runtime.Object, pkgv1.PackageRevision, []string) error
 }
 
 // ProviderHooks performs operations for a Provider package that requires a
@@ -206,196 +94,179 @@ func NewProviderHooks(client resource.ClientApplicator, namespace string, l logg
 
 // Pre cleans up a packaged controller and service account if the revision is
 // inactive.
-func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision, crdNames []string) error {
+func (h *ProviderHooks) Pre(ctx context.Context, pkg runtime.Object, pr pkgv1.PackageRevision, crdNames []string) error {
+	log := h.log.WithValues("package", pkg.GetObjectKind(), "pr", pr.GetName())
 	po, _ := nddpkg.TryConvert(pkg, &pkgmetav1.Provider{})
-	pkgProvider, ok := po.(*pkgmetav1.Provider)
+	pmp, ok := po.(*pkgmetav1.Provider)
 	if !ok {
 		return errors.New(errNotProvider)
 	}
 
 	// TBD updates
-	provRev, ok := pr.(*v1.ProviderRevision)
+	provRev, ok := pr.(*pkgv1.ProviderRevision)
 	if !ok {
 		return errors.New(errNotProviderRevision)
 	}
 
-	provRev.Status.PermissionRequests = pkgProvider.Spec.Controller.PermissionRequests
-	//provRev.Status.Apis = pkgProvider.Spec.Controller.Apis
-	//provRev.Status.Pods = pkgProvider.Spec.Controller.Pods
+	log.Debug("permission requests", "meta spec", pmp.Spec, "revision status", provRev.Status)
+	provRev.Status.PermissionRequests = pmp.Spec.Pod.PermissionRequests
 
-	// Do not clean up SA and controller if revision is not inactive.
-	if pr.GetDesiredState() != v1.PackageRevisionInactive {
+	// Do not clean up if revision is active.
+	if pr.GetDesiredState() == pkgv1.PackageRevisionActive {
 		return nil
 	}
-	cc, err := h.getControllerConfig(ctx, pr)
-	if err != nil {
-		return errors.Wrap(err, errControllerConfig)
-	}
-	// We do not have o delete the package since it has a common name; it will be deleted because the owner reference deals with that
+	log.Debug("desired state", "state", pr.GetDesiredState())
 	/*
-		h.log.Debug("pkgProvide deleter", "pkgProvider", pkgProvider, "desired statis", pr.GetDesiredState())
-		// set the namepsace to the one of ndd-core -> ndd-system
-		pkgProvider.SetNamespace(h.namespace)
-		if err := h.client.Delete(ctx, pkgProvider); resource.IgnoreNotFound(err) != nil {
-			return errors.Wrap(err, "error delete metav1 provider")
+		cc, err := h.getController(ctx, pr)
+		if err != nil {
+			return errors.Wrap(err, errControllerConfig)
 		}
 	*/
-	/*
-		svc := buildProviderService(pkgProvider, pr, h.namespace)
-		if err := h.client.Delete(ctx, svc); resource.IgnoreNotFound(err) != nil {
-			return errors.Wrap(err, errDeleteProviderService)
+	// We do not have to delete the package since it has a common name;
+	// it will be deleted because the owner reference deals with that
+	switch pmp.Spec.Pod.Type {
+	case pkgmetav1.DeploymentTypeDeployment:
+		d := renderProviderDeployment(pmp, pmp.Spec.Pod, pr, &Options{})
+		if err := h.client.Delete(ctx, d); resource.IgnoreNotFound(err) != nil {
+			return errors.Wrap(err, errDeleteProviderDeployment)
 		}
-	*/
-	//svcProfile := buildProviderProfileService(pkgProvider, pr, h.namespace)
-	//if err := h.client.Delete(ctx, svcProfile); err != nil {
-	//	return errors.Wrap(err, errDeleteProviderService)
-	//}
-	/*
-		svcWebHook := buildProviderWebhookService(pkgProvider, pr, h.namespace)
-		if err := h.client.Delete(ctx, svcWebHook); err != nil {
-			return errors.Wrap(err, errDeleteProviderService)
+		sa := renderServiceAccount(pmp, pmp.Spec.Pod, pr)
+		if err := h.client.Delete(ctx, sa); resource.IgnoreNotFound(err) != nil {
+			return errors.Wrap(err, errDeleteProviderSA)
 		}
-		certWebHook := buildProviderWebhookCertificate(pkgProvider, pr, h.namespace)
-		if err := h.client.Delete(ctx, certWebHook); err != nil {
-			return errors.Wrap(err, errDeleteProviderCertificate)
+	case pkgmetav1.DeploymentTypeStatefulset:
+		d := renderProviderStatefulSet(pmp, pmp.Spec.Pod, pr, &Options{})
+		if err := h.client.Delete(ctx, d); resource.IgnoreNotFound(err) != nil {
+			return errors.Wrap(err, errDeleteProviderDeployment)
 		}
-		mutateWebHook := buildProviderWebhookMutate(pkgProvider, pr, h.namespace)
-		if err := h.client.Delete(ctx, mutateWebHook); err != nil {
-			return errors.Wrap(err, errDeleteProviderMutateWebhook)
+		sa := renderServiceAccount(pmp, pmp.Spec.Pod, pr)
+		if err := h.client.Delete(ctx, sa); resource.IgnoreNotFound(err) != nil {
+			return errors.Wrap(err, errDeleteProviderSA)
 		}
-		validateWebHook := buildProviderWebhookValidate(pkgProvider, pr, h.namespace)
-		if err := h.client.Delete(ctx, validateWebHook); err != nil {
-			return errors.Wrap(err, errDeleteProviderValidateWebhook)
-		}
-	*/
-	s, d := buildProviderDeployment(pkgProvider, pr, cc, h.namespace, []string{})
-	if err := h.client.Delete(ctx, d); resource.IgnoreNotFound(err) != nil {
-		return errors.Wrap(err, errDeleteProviderDeployment)
 	}
-	if err := h.client.Delete(ctx, s); resource.IgnoreNotFound(err) != nil {
-		return errors.Wrap(err, errDeleteProviderSA)
-	}
+
 	return nil
 }
 
 // Post creates a packaged provider controller and service account if the
 // revision is active.
-func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr v1.PackageRevision, crdNames []string) error {
+func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.PackageRevision, crdNames []string) error {
+	log := h.log.WithValues("package", pkg.GetObjectKind(), "pr", pr.GetName())
 	po, _ := nddpkg.TryConvert(pkg, &pkgmetav1.Provider{})
-	pkgProvider, ok := po.(*pkgmetav1.Provider)
+	pmp, ok := po.(*pkgmetav1.Provider)
 	if !ok {
 		return errors.New("not a provider package")
 	}
 
 	// return if the desired status is not active
-	if pr.GetDesiredState() != v1.PackageRevisionActive {
+	if pr.GetDesiredState() != pkgv1.PackageRevisionActive {
 		return nil
 	}
-	cc, err := h.getControllerConfig(ctx, pr)
+
+	crds, err := h.getCrds(ctx, crdNames)
 	if err != nil {
-		return errors.Wrap(err, errControllerConfig)
+		return errors.Wrap(err, errGetCrd)
 	}
 
-	/*
-		// only create when not found, since we want to allow human or automated pipelines to update the CR
-		// we just create it
-		pkgMeta := &pkgmetav1.Provider{}
-		if err := h.client.Get(ctx, types.NamespacedName{Namespace: h.namespace, Name: pkgProvider.GetName()}, pkgMeta); err != nil {
-			if resource.IgnoreNotFound(err) != nil {
-				return errors.Wrap(err, "error get metav1 provider")
+	var grpcServiceName string
+	for _, c := range pmp.Spec.Pod.Containers {
+		log.Debug("extras", "container", c.Container.Name, "extras", c.Extras)
+		for _, extra := range c.Extras {
+			if extra.Certificate {
+				// deploy a certificate
+				cert := renderCertificate(pmp, pmp.Spec.Pod, c, extra, pr)
+				if err := h.client.Apply(ctx, cert); err != nil {
+					return errors.Wrap(err, errApplyProviderCertificate)
+				}
 			}
-			pkgprov := buildProviderPackage(pkgProvider, pr, h.namespace)
-			h.log.Debug("pkgProvider", "pkgMeta", pkgprov.Spec.Controller)
-			if err := h.client.Apply(ctx, pkgprov); err != nil {
-				return errors.Wrap(err, "error create metav1 provider")
+			if extra.Service {
+				// deploy a service
+				s := renderService(pmp, pmp.Spec.Pod, c, extra, pr)
+				if err := h.client.Apply(ctx, s); err != nil {
+					return errors.Wrap(err, errApplyProviderService)
+				}
+				if extra.Name == "grpc" {
+					grpcServiceName = s.Name
+				}
 			}
-		} else {
-			// check the owner reference and if it differs we update it
-			for _, ref := range pkgMeta.GetOwnerReferences() {
-				if ref.UID != pr.GetUID() {
-					pkgprov := buildProviderPackage(pkgProvider, pr, h.namespace)
-					if err := h.client.Apply(ctx, pkgprov); err != nil {
-						return errors.Wrap(err, "error create metav1 provider")
-					}
+			if extra.Webhook {
+				if len(crds) == 0 {
+					return errors.New("cannot apply webhook if no crds are found")
+				}
+				// deploy a mutating webhook
+				whMutate := renderWebhookMutate(pmp, pmp.Spec.Pod, c, extra, pr, crds)
+				if err := h.client.Apply(ctx, whMutate); err != nil {
+					return errors.Wrap(err, errApplyProviderMutateWebhook)
+				}
+				// deploy a validating webhook
+				whValidate := renderWebhookValidate(pmp, pmp.Spec.Pod, c, extra, pr, crds)
+				if err := h.client.Apply(ctx, whValidate); err != nil {
+					return errors.Wrap(err, errApplyProviderValidateWebhook)
 				}
 			}
 		}
-	*/
+	}
 
-	/*
-		crds, err := h.getCrds(ctx, crdNames)
+	switch pmp.Spec.Pod.Type {
+	case pkgmetav1.DeploymentTypeDeployment:
+		d := renderProviderDeployment(pmp, pmp.Spec.Pod, pr, &Options{
+			grpcServiceName: grpcServiceName,
+		})
+		if err := h.client.Apply(ctx, d); err != nil {
+			return errors.Wrap(err, errApplyProviderDeployment)
+		}
+		sa := renderServiceAccount(pmp, pmp.Spec.Pod, pr)
+		if err := h.client.Apply(ctx, sa); err != nil {
+			return errors.Wrap(err, errApplyProviderServiceAccount)
+		}
+		for _, c := range d.Status.Conditions {
+			if c.Type == appsv1.DeploymentAvailable {
+				if c.Status == corev1.ConditionTrue {
+					return nil
+				}
+				return errors.Errorf("%s: %s", errUnavailableProviderDeployment, c.Message)
+			}
+		}
+	case pkgmetav1.DeploymentTypeStatefulset:
+		cp, err := h.getCompositeProvider(ctx, pr)
 		if err != nil {
-			return errors.Wrap(err, errGetCrd)
+			return errors.Wrap(err, errCompositeProvider)
 		}
-	*/
-	/*
-		svcGnmi := buildProviderService(pkgProvider, pr, h.namespace)
-		if err := h.client.Apply(ctx, svcGnmi); err != nil {
-			return errors.Wrap(err, errDeleteProviderService)
+		log.Debug("statefulset serviceInfo", "kind", pr.GetRevisionKind(), "servicediscoveryInfo", cp.GetServicesInfoByKind(pr.GetRevisionKind()), "grpcserviceName", grpcServiceName)
+		s := renderProviderStatefulSet(pmp, pmp.Spec.Pod, pr, &Options{
+			serviceDiscoveryInfo: cp.GetServicesInfoByKind(pr.GetRevisionKind()),
+			grpcServiceName:      grpcServiceName,
+		})
+		if err := h.client.Apply(ctx, s); err != nil {
+			return errors.Wrap(err, errApplyProviderStatefulset)
 		}
-	*/
-	/*
-		certGnmi := buildProviderGnmiCertificate(pkgProvider, pr, h.namespace)
-		if err := h.client.Apply(ctx, certGnmi); err != nil {
-			return errors.Wrap(err, errApplyProviderCertificate)
+		sa := renderServiceAccount(pmp, pmp.Spec.Pod, pr)
+		if err := h.client.Apply(ctx, sa); err != nil {
+			return errors.Wrap(err, errApplyProviderServiceAccount)
 		}
-	*/
-	svcMetricHttps := buildProviderMetricServiceHTTPS(pkgProvider, pr, h.namespace)
-	if err := h.client.Apply(ctx, svcMetricHttps); err != nil {
-		return errors.Wrap(err, errApplyProviderService)
 	}
-	svcProfile := buildProviderProfileService(pkgProvider, pr, h.namespace)
-	if err := h.client.Apply(ctx, svcProfile); err != nil {
-		return errors.Wrap(err, errApplyProviderService)
-	}
-	/*
-		if len(crds) == 1 {
-			svcWebHook := buildProviderWebhookService(pkgProvider, pr, h.namespace)
-			if err := h.client.Apply(ctx, svcWebHook); err != nil {
-				return errors.Wrap(err, errApplyProviderService)
-			}
-			certWebHook := buildProviderWebhookCertificate(pkgProvider, pr, h.namespace)
-			if err := h.client.Apply(ctx, certWebHook); err != nil {
-				return errors.Wrap(err, errApplyProviderCertificate)
-			}
-			mutateWebHook := buildProviderWebhookMutate(pkgProvider, pr, h.namespace, crds[0])
-			if err := h.client.Apply(ctx, mutateWebHook); err != nil {
-				return errors.Wrap(err, errApplyProviderMutateWebhook)
-			}
-			validateWebHook := buildProviderWebhookValidate(pkgProvider, pr, h.namespace, crds[0])
-			if err := h.client.Apply(ctx, validateWebHook); err != nil {
-				return errors.Wrap(err, errApplyProviderValidateWebhook)
-			}
-		}
-	*/
-	s, d := buildProviderDeployment(pkgProvider, pr, cc, h.namespace, crdNames)
-	if err := h.client.Apply(ctx, s); err != nil {
-		return errors.Wrap(err, errApplyProviderSA)
-	}
-	if err := h.client.Apply(ctx, d); err != nil {
-		return errors.Wrap(err, errApplyProviderDeployment)
-	}
-	pr.SetControllerReference(nddv1.Reference{Name: d.GetName()})
 
-	for _, c := range d.Status.Conditions {
-		if c.Type == appsv1.DeploymentAvailable {
-			if c.Status == corev1.ConditionTrue {
-				return nil
-			}
-			return errors.Errorf("%s: %s", errUnavailableProviderDeployment, c.Message)
-		}
-	}
 	return nil
 }
 
-func (h *ProviderHooks) getControllerConfig(ctx context.Context, pr v1.PackageRevision) (*v1.ControllerConfig, error) {
-	var cc *v1.ControllerConfig
-	if pr.GetControllerConfigRef() != nil {
-		cc = &v1.ControllerConfig{}
-		if err := h.client.Get(ctx, types.NamespacedName{Name: pr.GetControllerConfigRef().Name}, cc); err != nil {
-			return nil, errors.Wrap(err, errControllerConfig)
-		}
+func (h *ProviderHooks) getCompositeProvider(ctx context.Context, pr pkgv1.PackageRevision) (*pkgv1.CompositeProvider, error) {
+	var cc *pkgv1.CompositeProvider
+	h.log.Debug("getCompositeProvider", "pr", pr)
+	h.log.Debug("getCompositeProvider", "GetOwnerReferences", pr.GetOwnerReferences())
+
+	cpName, ok := pr.GetLabels()[strings.Join([]string{pkgv1.Group, "composite-provider-name"}, "/")]
+	if !ok {
+		return nil, errors.New("composite-provider-name key not found in labels")
 	}
+	cpNamespace, ok := pr.GetLabels()[strings.Join([]string{pkgv1.Group, "composite-provider-namespace"}, "/")]
+	if !ok {
+		return nil, errors.New("composite-provider-namespace key not found in labels")
+	}
+	cc = &pkgv1.CompositeProvider{}
+	if err := h.client.Get(ctx, types.NamespacedName{Namespace: cpNamespace, Name: cpName}, cc); err != nil {
+		return nil, errors.Wrap(err, errCompositeProvider)
+	}
+
 	return cc, nil
 }
 
@@ -420,11 +291,11 @@ func NewNopHooks() *NopHooks {
 }
 
 // Pre does nothing and returns nil.
-func (h *NopHooks) Pre(context.Context, runtime.Object, v1.PackageRevision, []string) error {
+func (h *NopHooks) Pre(context.Context, runtime.Object, pkgv1.PackageRevision, []string) error {
 	return nil
 }
 
 // Post does nothing and returns nil.
-func (h *NopHooks) Post(context.Context, runtime.Object, v1.PackageRevision, []string) error {
+func (h *NopHooks) Post(context.Context, runtime.Object, pkgv1.PackageRevision, []string) error {
 	return nil
 }

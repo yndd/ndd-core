@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
+	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-core/internal/nddpkg"
 	"github.com/yndd/ndd-runtime/pkg/event"
 	"github.com/yndd/ndd-runtime/pkg/logging"
@@ -82,21 +82,21 @@ const (
 type ReconcilerOption func(*Reconciler)
 
 // WithNewPackageFn determines the type of package being reconciled.
-func WithNewPackageFn(f func() v1.Package) ReconcilerOption {
+func WithNewPackageFn(f func() pkgv1.Package) ReconcilerOption {
 	return func(r *Reconciler) {
 		r.newPackage = f
 	}
 }
 
 // WithNewPackageRevisionFn determines the type of package being reconciled.
-func WithNewPackageRevisionFn(f func() v1.PackageRevision) ReconcilerOption {
+func WithNewPackageRevisionFn(f func() pkgv1.PackageRevision) ReconcilerOption {
 	return func(r *Reconciler) {
 		r.newPackageRevision = f
 	}
 }
 
 // WithNewPackageRevisionListFn determines the type of package being reconciled.
-func WithNewPackageRevisionListFn(f func() v1.PackageRevisionList) ReconcilerOption {
+func WithNewPackageRevisionListFn(f func() pkgv1.PackageRevisionList) ReconcilerOption {
 	return func(r *Reconciler) {
 		r.newPackageRevisionList = f
 	}
@@ -131,17 +131,17 @@ type Reconciler struct {
 	log    logging.Logger
 	record event.Recorder
 
-	newPackage             func() v1.Package
-	newPackageRevision     func() v1.PackageRevision
-	newPackageRevisionList func() v1.PackageRevisionList
+	newPackage             func() pkgv1.Package
+	newPackageRevision     func() pkgv1.PackageRevision
+	newPackageRevisionList func() pkgv1.PackageRevisionList
 }
 
-// SetupProvider adds a controller that reconciles Providers.
-func SetupProvider(mgr ctrl.Manager, l logging.Logger, namespace string) error {
-	name := "packages/" + strings.ToLower(v1.ProviderGroupKind)
-	np := func() v1.Package { return &v1.Provider{} }
-	nr := func() v1.PackageRevision { return &v1.ProviderRevision{} }
-	nrl := func() v1.PackageRevisionList { return &v1.ProviderRevisionList{} }
+// Setup adds a controller that reconciles Providers.
+func Setup(mgr ctrl.Manager, l logging.Logger, namespace string) error {
+	name := "packages/" + strings.ToLower(pkgv1.ProviderGroupKind)
+	np := func() pkgv1.Package { return &pkgv1.Provider{} }
+	nr := func() pkgv1.PackageRevision { return &pkgv1.ProviderRevision{} }
+	nrl := func() pkgv1.PackageRevisionList { return &pkgv1.ProviderRevisionList{} }
 
 	clientset, err := kubernetes.NewForConfig(mgr.GetConfig())
 	if err != nil {
@@ -159,36 +159,8 @@ func SetupProvider(mgr ctrl.Manager, l logging.Logger, namespace string) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&v1.Provider{}).
-		Owns(&v1.ProviderRevision{}).
-		Complete(r)
-}
-
-// SetupIntent adds a controller that reconciles Intents.
-func SetupIntent(mgr ctrl.Manager, l logging.Logger, namespace string) error {
-	name := "packages/" + strings.ToLower(v1.IntentGroupKind)
-	np := func() v1.Package { return &v1.Intent{} }
-	nr := func() v1.PackageRevision { return &v1.IntentRevision{} }
-	nrl := func() v1.PackageRevisionList { return &v1.IntentRevisionList{} }
-
-	clientset, err := kubernetes.NewForConfig(mgr.GetConfig())
-	if err != nil {
-		return errors.Wrap(err, "failed to initialize clientset")
-	}
-
-	r := NewReconciler(mgr,
-		WithNewPackageFn(np),
-		WithNewPackageRevisionFn(nr),
-		WithNewPackageRevisionListFn(nrl),
-		WithRevisioner(NewPackageRevisioner(nddpkg.NewK8sFetcher(clientset, namespace))),
-		WithLogger(l.WithValues("controller", name)),
-		WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
-	)
-
-	return ctrl.NewControllerManagedBy(mgr).
-		Named(name).
-		For(&v1.Intent{}).
-		Owns(&v1.IntentRevision{}).
+		For(&pkgv1.Provider{}).
+		Owns(&pkgv1.ProviderRevision{}).
 		Complete(r)
 }
 
@@ -220,12 +192,6 @@ func NewReconciler(mgr ctrl.Manager, opts ...ReconcilerOption) *Reconciler {
 // +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=providers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=providers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=providers/finalizers,verbs=update
-// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intentrevisions,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intentrevisions/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intentrevisions/finalizers,verbs=update
-// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intents,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intents/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=pkg.ndd.yndd.io,resources=intents/finalizers,verbs=update
 
 // Reconcile package.
 func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) { // nolint:gocyclo
@@ -264,7 +230,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	// fetch the package from the container registry
 	revisionName, err := r.pkg.Revision(ctx, log, p)
 	if err != nil {
-		p.SetConditions(v1.Unpacking())
+		p.SetConditions(pkgv1.Unpacking())
 		log.Debug(errUnpack, "error", err)
 		r.record.Event(p, event.Warning(reasonUnpack, errors.Wrap(err, errUnpack)))
 		return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, p), errUpdateStatus)
@@ -273,7 +239,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	log.Debug("revisionName", "revisionName", revisionName)
 
 	if revisionName == "" {
-		p.SetConditions(v1.Unpacking())
+		p.SetConditions(pkgv1.Unpacking())
 		r.record.Event(p, event.Normal(reasonUnpack, "Waiting for unpack to complete"))
 		return reconcile.Result{RequeueAfter: veryShortWait}, errors.Wrap(r.client.Status().Update(ctx, p), errUpdateStatus)
 	}
@@ -310,11 +276,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 			// non-current revisions are inactive.
 			continue
 		}
-		if rev.GetDesiredState() == v1.PackageRevisionActive {
+		if rev.GetDesiredState() == pkgv1.PackageRevisionActive {
 			// If revision is not the current revision, set to inactive. This
 			// should always be done, regardless of the package's revision
 			// activation policy.
-			rev.SetDesiredState(v1.PackageRevisionInactive)
+			rev.SetDesiredState(pkgv1.PackageRevisionInactive)
 			if err := r.client.Apply(ctx, rev, resource.MustBeControllableBy(p.GetUID())); err != nil {
 				log.Debug(errUpdateInactivePackageRevision, "error", err)
 				r.record.Event(p, event.Warning(reasonTransitionRevision, errors.Wrap(err, errUpdateInactivePackageRevision)))
@@ -341,33 +307,41 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		}
 	}
 
-	if pr.GetCondition(v1.ConditionKindPackageHealthy).Status == corev1.ConditionTrue {
-		p.SetConditions(v1.Healthy())
+	if pr.GetCondition(pkgv1.ConditionKindPackageHealthy).Status == corev1.ConditionTrue {
+		p.SetConditions(pkgv1.Healthy())
 		r.record.Event(p, event.Normal(reasonInstall, "Successfully installed package revision"))
 	}
-	if pr.GetCondition(v1.ConditionKindPackageHealthy).Status == corev1.ConditionFalse {
-		p.SetConditions(v1.Unhealthy())
+	if pr.GetCondition(pkgv1.ConditionKindPackageHealthy).Status == corev1.ConditionFalse {
+		p.SetConditions(pkgv1.Unhealthy())
 		r.record.Event(p, event.Warning(reasonInstall, errors.New(errUnhealthyPackageRevision)))
 	}
-	if pr.GetCondition(v1.ConditionKindPackageHealthy).Status == corev1.ConditionUnknown {
-		p.SetConditions(v1.UnknownHealth())
+	if pr.GetCondition(pkgv1.ConditionKindPackageHealthy).Status == corev1.ConditionUnknown {
+		p.SetConditions(pkgv1.UnknownHealth())
 		r.record.Event(p, event.Warning(reasonInstall, errors.New(errUnknownPackageRevisionHealth)))
 	}
 
 	// Create the non-existent package revision.
 	pr.SetName(revisionName)
-	pr.SetLabels(map[string]string{parentLabel: p.GetName()})
-	pr.SetAutoPilot(p.GetAutoPilot())
+	labels := map[string]string{parentLabel: p.GetName()}
+	if v, ok := p.GetLabels()[strings.Join([]string{pkgv1.Group, "composite-provider-name"}, "/")]; ok {
+		labels[strings.Join([]string{pkgv1.Group, "composite-provider-name"}, "/")] = v
+	}
+	if v, ok := p.GetLabels()[strings.Join([]string{pkgv1.Group, "composite-provider-namespace"}, "/")]; ok {
+		labels[strings.Join([]string{pkgv1.Group, "composite-provider-namespace"}, "/")] = v
+	}
+	pr.SetLabels(labels)
+	pr.SetRevisionKind(p.GetKind())
 	pr.SetSource(p.GetSource())
 	pr.SetPackagePullPolicy(p.GetPackagePullPolicy())
 	pr.SetPackagePullSecrets(p.GetPackagePullSecrets())
 	pr.SetSkipDependencyResolution(p.GetSkipDependencyResolution())
-	pr.SetControllerConfigRef(p.GetControllerConfigRef())
+	pr.SetControllerRef(p.GetControllerRef())
 
+	log.Debug("manager state", "state", pr.GetDesiredState(), "activation policy", p.GetActivationPolicy())
 	// If current revision is not active and we have an automatic or undefined
 	// activation policy, always activate.
-	if pr.GetDesiredState() != v1.PackageRevisionActive && (p.GetActivationPolicy() == nil || *p.GetActivationPolicy() == v1.AutomaticActivation) {
-		pr.SetDesiredState(v1.PackageRevisionActive)
+	if pr.GetDesiredState() != pkgv1.PackageRevisionActive && (p.GetActivationPolicy() == nil || *p.GetActivationPolicy() == pkgv1.AutomaticActivation) {
+		pr.SetDesiredState(pkgv1.PackageRevisionActive)
 	}
 
 	controlRef := meta.AsController(meta.TypedReferenceTo(p, p.GetObjectKind().GroupVersionKind()))
@@ -380,11 +354,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, p), errUpdateStatus)
 	}
 
-	p.SetConditions(v1.Active())
+	p.SetConditions(pkgv1.Active())
 
 	// If current revision is still not active, the package is inactive.
-	if pr.GetDesiredState() != v1.PackageRevisionActive {
-		p.SetConditions(v1.Inactive())
+	if pr.GetDesiredState() != pkgv1.PackageRevisionActive {
+		p.SetConditions(pkgv1.Inactive())
 	}
 
 	// NOTE: when the first package revision is created for a

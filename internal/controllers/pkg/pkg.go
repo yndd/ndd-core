@@ -19,6 +19,7 @@ package pkg
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/yndd/ndd-core/internal/controllers/pkg/composite"
 	"github.com/yndd/ndd-core/internal/controllers/pkg/manager"
 	"github.com/yndd/ndd-core/internal/controllers/pkg/resolver"
 	"github.com/yndd/ndd-core/internal/controllers/pkg/revision"
@@ -29,9 +30,9 @@ import (
 // Setup package controllers.
 func Setup(mgr ctrl.Manager, l logging.Logger, c nddpkg.Cache, namespace string) error {
 	for _, setup := range []func(ctrl.Manager, logging.Logger, string) error{
-		manager.SetupProvider,
-		manager.SetupIntent,
+		manager.Setup,
 		resolver.Setup,
+		composite.Setup,
 	} {
 		if err := setup(mgr, l, namespace); err != nil {
 			return err
@@ -39,7 +40,6 @@ func Setup(mgr ctrl.Manager, l logging.Logger, c nddpkg.Cache, namespace string)
 	}
 	for _, setup := range []func(ctrl.Manager, logging.Logger, nddpkg.Cache, string) error{
 		revision.SetupProviderRevision,
-		revision.SetupIntentRevision,
 	} {
 		if err := setup(mgr, l, c, namespace); err != nil {
 			return err

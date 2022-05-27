@@ -55,6 +55,12 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: SERVICE_DISCOVERY
+          value: consul
+        - name: SERVICE_DISCOVERY_NAMESPACE
+          value: consul
+        - name: SERVICE_DISCOVERY_DCNAME
+          value: ""
         volumeMounts:
         - mountPath: /cache
           name: package-cache

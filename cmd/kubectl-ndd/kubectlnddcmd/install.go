@@ -104,51 +104,6 @@ var installCmd = &cobra.Command{
 			_, err = fmt.Fprintf(os.Stdout, "%s/%s created\n", strings.ToLower(nddv1.ProviderGroupKind), pkgName)
 			return err
 		}
-		if intentName != "" {
-			pkgName := intentName
-			if pkgName == "" {
-				ref, err := name.ParseReference(packageName)
-				if err != nil {
-					return errors.Wrap(err, errPkgIdentifier)
-				}
-				pkgName = nddpkg.ToDNSLabel(ref.Context().RepositoryStr())
-			}
-			packagePullSecrets := make([]corev1.LocalObjectReference, len(PackagePullSecrets))
-			for i, s := range PackagePullSecrets {
-				packagePullSecrets[i] = corev1.LocalObjectReference{
-					Name: s,
-				}
-			}
-			cr := &nddv1.Intent{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pkgName,
-				},
-				Spec: nddv1.IntentSpec{
-					PackageSpec: nddv1.PackageSpec{
-						Package:                  packageName,
-						RevisionActivationPolicy: &rap,
-						RevisionHistoryLimit:     &revisionHistoryLimit,
-						PackagePullSecrets:       packagePullSecrets,
-					},
-				},
-			}
-
-			fmt.Printf("cr %v", cr)
-			k8sclopts := client.Options{
-				Scheme: scheme,
-			}
-			c, err := client.New(config.GetConfigOrDie(), k8sclopts)
-			if err != nil {
-				return errors.Wrap(warnIfNotFound(err), errGetclient)
-			}
-
-			if err := c.Create(context.Background(), cr); err != nil {
-				return errors.Wrap(warnIfNotFound(err), "cannot create provider")
-			}
-
-			_, err = fmt.Fprintf(os.Stdout, "%s/%s created\n", strings.ToLower(nddv1.ProviderGroupKind), pkgName)
-			return err
-		}
 		return nil
 	},
 }
@@ -158,7 +113,6 @@ func init() {
 	packageCmd.AddCommand(installCmd)
 	installCmd.PersistentFlags().StringVarP(&packageName, "PackageName", "p", "", "Image containing Provider package.")
 	installCmd.Flags().StringVarP(&providerName, "providerName", "", "", "Name of Provider.")
-	installCmd.Flags().StringVarP(&intentName, "intentName", "", "", "Name of Intent.")
 	installCmd.Flags().Int64VarP(&revisionHistoryLimit, "RevisionHistoryLimit", "r", 1, "Revision history limit.")
 	installCmd.Flags().BoolVarP(&manualActivation, "ManualActivation", "", false, "Enable manual revision activation policy")
 	installCmd.Flags().StringSliceVarP(&PackagePullSecrets, "PackagePullSecrets", "", i, "List of secrets used to pull package.")

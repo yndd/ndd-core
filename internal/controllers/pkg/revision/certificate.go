@@ -16,68 +16,41 @@ limitations under the License.
 
 package revision
 
-/*
 import (
 	"strings"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
-	v1 "github.com/yndd/ndd-core/apis/pkg/v1"
+	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-runtime/pkg/meta"
 )
 
-func buildProviderWebhookCertificate(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string) *certv1.Certificate { // nolint:interfacer,gocyclo
-	webhookCertificateName := strings.Join([]string{revision.GetName(), "webhook", "serving-cert"}, "-")
-	webhookServiceName := strings.Join([]string{revision.GetName(), "webhook", "svc"}, "-")
-	return &certv1.Certificate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      webhookCertificateName,
-			Namespace: namespace,
-			Labels: map[string]string{
-				"webhook": webhookCertificateName,
-			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
-		},
-		Spec: certv1.CertificateSpec{
-			DNSNames: []string{
-				strings.Join([]string{webhookServiceName, namespace, "svc"}, "."),
-				strings.Join([]string{webhookServiceName, namespace, "svc", "cluster", "local"}, "."),
-			},
-			IssuerRef: certmetav1.ObjectReference{
-				Kind: "Issuer",
-				Name: "selfsigned-issuer",
-			},
-			SecretName: webhookCertificateName,
-		},
-	}
-}
+func renderCertificate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, pr pkgv1.PackageRevision) *certv1.Certificate { // nolint:interfacer,gocyclo
+	certificateName := getCertificateName(pr.GetName(), c.Container.Name, extra.Name)
+	serviceName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
 
-func buildProviderGnmiCertificate(provider *pkgmetav1.Provider, revision v1.PackageRevision, namespace string) *certv1.Certificate { // nolint:interfacer,gocyclo
-	gnmiCertificateName := strings.Join([]string{revision.GetName(), "gnmi", "serving-cert"}, "-")
-	gnmiServiceName := strings.Join([]string{revision.GetName(), "gnmi", "svc"}, "-")
 	return &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      gnmiCertificateName,
-			Namespace: namespace,
+			Name:      certificateName,
+			Namespace: p.Namespace,
 			Labels: map[string]string{
-				"gnmi": gnmiCertificateName,
+				getLabelKey(strings.Join([]string{c.Container.Name, extra.Name}, "-")): serviceName,
 			},
-			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(revision, v1.ProviderRevisionGroupVersionKind))},
+			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Spec: certv1.CertificateSpec{
 			DNSNames: []string{
-				strings.Join([]string{gnmiServiceName, namespace, "svc"}, "."),
-				strings.Join([]string{gnmiServiceName, namespace, "svc", "cluster", "local"}, "."),
+				getDnsName(p.Namespace, serviceName),
+				getDnsName(p.Namespace, serviceName, "cluster", "local"),
 			},
 			IssuerRef: certmetav1.ObjectReference{
 				Kind: "Issuer",
 				Name: "selfsigned-issuer",
 			},
-			SecretName: gnmiCertificateName,
+			SecretName: certificateName,
 		},
 	}
 }
-*/

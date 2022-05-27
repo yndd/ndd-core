@@ -229,46 +229,6 @@ func SetupProviderRevision(mgr ctrl.Manager, l logging.Logger, cache nddpkg.Cach
 		Complete(r)
 }
 
-// SetupIntentRevision adds a controller that reconciles IntentRevisions.
-func SetupIntentRevision(mgr ctrl.Manager, l logging.Logger, cache nddpkg.Cache, namespace string) error {
-	name := "packages/" + strings.ToLower(pkgv1.IntentRevisionGroupKind)
-	nr := func() pkgv1.PackageRevision { return &pkgv1.IntentRevision{} }
-
-	clientset, err := kubernetes.NewForConfig(mgr.GetConfig())
-	if err != nil {
-		return errors.Wrap(err, "failed to initialize host clientset with in cluster config")
-	}
-
-	metaScheme, err := nddpkg.BuildMetaScheme()
-	if err != nil {
-		return errors.New("cannot build meta scheme for package parser")
-	}
-	objScheme, err := nddpkg.BuildObjectScheme()
-	if err != nil {
-		return errors.New("cannot build object scheme for package parser")
-	}
-
-	r := NewReconciler(mgr,
-		WithCache(cache),
-		WithDependencyManager(NewPackageDependencyManager(mgr.GetClient(), dag.NewMapDag, pkgmetav1.IntentPackageType)),
-		WithHooks(NewIntentHooks(resource.ClientApplicator{
-			Client:     mgr.GetClient(),
-			Applicator: resource.NewAPIPatchingApplicator(mgr.GetClient()),
-		}, namespace)),
-		WithNewPackageRevisionFn(nr),
-		WithParser(parser.New(metaScheme, objScheme)),
-		WithParserBackend(NewImageBackend(cache, nddpkg.NewK8sFetcher(clientset, namespace))),
-		WithLinter(nddpkg.NewIntentLinter()),
-		WithLogger(l.WithValues("controller", name)),
-		WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
-	)
-
-	return ctrl.NewControllerManagedBy(mgr).
-		Named(name).
-		For(&pkgv1.IntentRevision{}).
-		Complete(r)
-}
-
 // NewReconciler creates a new package revision reconciler.
 func NewReconciler(mgr manager.Manager, opts ...ReconcilerOption) *Reconciler {
 
@@ -293,7 +253,7 @@ func NewReconciler(mgr manager.Manager, opts ...ReconcilerOption) *Reconciler {
 }
 
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -371,7 +331,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	}
 
 	// Parse package contents.
-
 	pkg, err := r.parser.Parse(ctx, reader)
 	if err != nil {
 		log.Debug(errParsePackage, "error", err)

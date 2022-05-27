@@ -32,8 +32,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	//dvrv1 "github.com/yndd/ndd-core/apis/dvr/v1"
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
 	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
@@ -95,11 +95,9 @@ func init() {
 	i := initializer.New(cl,
 		initializer.NewLockObject(),
 		initializer.NewCRDWaiter([]string{
-			//fmt.Sprintf("%s.%s", "networknodes", dvrv1.Group),
-			fmt.Sprintf("%s.%s", "intents", pkgv1.Group),
 			fmt.Sprintf("%s.%s", "providers", pkgv1.Group),
 			fmt.Sprintf("%s.%s", "providerrevisions", pkgv1.Group),
-			fmt.Sprintf("%s.%s", "intentrevisions", pkgv1.Group),
+			fmt.Sprintf("%s.%s", "compositeproviders", pkgv1.Group),
 			fmt.Sprintf("%s.%s", "providers", pkgmetav1.Group),
 		}, time.Minute, time.Second, logging.NewLogrLogger(zlog.WithName("nddcoreinit"))),
 	)
@@ -111,6 +109,7 @@ func init() {
 	*/
 	if err := i.Init(context.TODO()); err != nil {
 		fmt.Printf("cannot initialize core %s\n", err)
+		os.Exit(1)
 	}
 	fmt.Printf("Initialization has been completed\n")
 }
