@@ -9,9 +9,14 @@ metadata:
 spec:
   group: pkg.ndd.yndd.io
   names:
+    categories:
+    - ndd
+    - pkg
     kind: CompositeProvider
     listKind: CompositeProviderList
     plural: compositeproviders
+    shortNames:
+    - cp
     singular: compositeprovider
   scope: Namespaced
   versions:
@@ -36,7 +41,7 @@ spec:
           spec:
             description: ControllerSpec specifies the configuration of a Controller.
             properties:
-              pods:
+              packages:
                 description: Packages define the package specification used for creating
                   the provider
                 items:
@@ -103,11 +108,50 @@ spec:
                 description: VendorType specifies the vendor of the provider composite
                 type: string
             type: object
+          status:
+            description: CompositeProviderStatus defines the observed state of CompositeProvider
+            properties:
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource
+                  properties:
+                    kind:
+                      description: Type of this condition. At most one of each condition
+                        type may apply to a resource at any point in time.
+                      type: string
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time this condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A Message containing details about this condition's
+                        last transition from one status to another, if any.
+                      type: string
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                  required:
+                  - kind
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  type: object
+                type: array
+            type: object
         required:
         - spec
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""

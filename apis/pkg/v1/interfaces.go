@@ -62,6 +62,8 @@ type Package interface {
 	GetSource() string
 	SetSource(s string)
 
+	GetKind() Kind
+
 	GetActivationPolicy() *RevisionActivationPolicy
 	SetActivationPolicy(a *RevisionActivationPolicy)
 
@@ -105,6 +107,11 @@ func (p *Provider) GetSource() string {
 // SetSource of this Provider.
 func (p *Provider) SetSource(s string) {
 	p.Spec.Package = s
+}
+
+// GetKind of this Provider.
+func (p *Provider) GetKind() Kind {
+	return p.Spec.Kind
 }
 
 // GetActivationPolicy of this Provider.
@@ -232,6 +239,7 @@ type PackageRevision interface {
 	GetKind() string
 
 	GetRevisionKind() Kind
+	SetRevisionKind(k Kind)
 }
 
 func (p *ProviderRevision) GetKind() string {
@@ -240,6 +248,10 @@ func (p *ProviderRevision) GetKind() string {
 
 func (p *ProviderRevision) GetRevisionKind() Kind {
 	return p.Spec.Kind
+}
+
+func (p *ProviderRevision) SetRevisionKind(k Kind) {
+	p.Spec.Kind = k
 }
 
 func (p *ProviderRevision) GetRevName() string {

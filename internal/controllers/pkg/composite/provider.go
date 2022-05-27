@@ -22,7 +22,6 @@ import (
 	pkgv1 "github.com/yndd/ndd-core/apis/pkg/v1"
 	"github.com/yndd/ndd-runtime/pkg/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 func getProviderName(compositeProviderName, pkgName string) string {
@@ -35,10 +34,8 @@ func renderProvider(cp *pkgv1.CompositeProvider, pkg pkgv1.PackageSpec) *pkgv1.P
 			Name:      getProviderName(cp.Name, pkg.Name),
 			Namespace: cp.Namespace,
 			Labels: map[string]string{
-				pkgv1.CompositeProviderGroupKind: types.NamespacedName{
-					Namespace: cp.Namespace,
-					Name:      cp.Name,
-				}.String(),
+				strings.Join([]string{pkgv1.Group, "composite-provider-name"}, "/"):      cp.Name,
+				strings.Join([]string{pkgv1.Group, "composite-provider-namespace"}, "/"): cp.Namespace,
 			},
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(cp, pkgv1.CompositeProviderGroupVersionKind))},
 		},

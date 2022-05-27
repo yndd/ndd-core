@@ -18,6 +18,7 @@ package revision
 
 import (
 	"context"
+	"strings"
 
 	"github.com/pkg/errors"
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
@@ -35,7 +36,7 @@ import (
 const (
 	errNotProvider                   = "not a provider package"
 	errNotProviderRevision           = "not a provider revision"
-	errControllerConfig              = "cannot get referenced controller config"
+	errCompositeProvider             = "cannot get referenced composite provider"
 	errGetCrd                        = "cannot get crd"
 	errDeleteProviderDeployment      = "cannot delete provider package deployment"
 	errDeleteProviderSA              = "cannot delete provider package service account"
@@ -189,6 +190,9 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 				}
 			}
 			if extra.Webhook {
+				if len(crds) == 0 {
+					return errors.New("cannot apply webhook if no crds are found")
+				}
 				// deploy a mutating webhook
 				whMutate := renderWebhookMutate(pmp, pmp.Spec.Pod, c, extra, pr, crds)
 				if err := h.client.Apply(ctx, whMutate); err != nil {
@@ -224,12 +228,13 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 			}
 		}
 	case pkgmetav1.DeploymentTypeStatefulset:
-		cc, err := h.getController(ctx, pr)
+		cp, err := h.getCompositeProvider(ctx, pr)
 		if err != nil {
-			return errors.Wrap(err, errControllerConfig)
+			return errors.Wrap(err, errCompositeProvider)
 		}
+		log.Debug("statefulset serviceInfo", "kind", pr.GetRevisionKind(), "servicediscoveryInfo", cp.GetServicesInfoByKind(pr.GetRevisionKind()), "grpcserviceName", grpcServiceName)
 		s := renderProviderStatefulSet(pmp, pmp.Spec.Pod, pr, &Options{
-			serviceDiscoveryInfo: cc.GetServicesInfoByKind(pr.GetRevisionKind()),
+			serviceDiscoveryInfo: cp.GetServicesInfoByKind(pr.GetRevisionKind()),
 			grpcServiceName:      grpcServiceName,
 		})
 		if err := h.client.Apply(ctx, s); err != nil {
@@ -244,14 +249,24 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 	return nil
 }
 
-func (h *ProviderHooks) getController(ctx context.Context, pr pkgv1.PackageRevision) (*pkgv1.CompositeProvider, error) {
+func (h *ProviderHooks) getCompositeProvider(ctx context.Context, pr pkgv1.PackageRevision) (*pkgv1.CompositeProvider, error) {
 	var cc *pkgv1.CompositeProvider
-	if pr.GetControllerRef() != nil {
-		cc = &pkgv1.CompositeProvider{}
-		if err := h.client.Get(ctx, types.NamespacedName{Name: pr.GetControllerRef().Name}, cc); err != nil {
-			return nil, errors.Wrap(err, errControllerConfig)
-		}
+	h.log.Debug("getCompositeProvider", "pr", pr)
+	h.log.Debug("getCompositeProvider", "GetOwnerReferences", pr.GetOwnerReferences())
+
+	cpName, ok := pr.GetLabels()[strings.Join([]string{pkgv1.Group, "composite-provider-name"}, "/")]
+	if !ok {
+		return nil, errors.New("composite-provider-name key not found in labels")
 	}
+	cpNamespace, ok := pr.GetLabels()[strings.Join([]string{pkgv1.Group, "composite-provider-namespace"}, "/")]
+	if !ok {
+		return nil, errors.New("composite-provider-namespace key not found in labels")
+	}
+	cc = &pkgv1.CompositeProvider{}
+	if err := h.client.Get(ctx, types.NamespacedName{Namespace: cpNamespace, Name: cpName}, cc); err != nil {
+		return nil, errors.Wrap(err, errCompositeProvider)
+	}
+
 	return cc, nil
 }
 

@@ -17,6 +17,8 @@ limitations under the License.
 package revision
 
 import (
+	"strings"
+
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +37,7 @@ func renderCertificate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkg
 			Name:      certificateName,
 			Namespace: p.Namespace,
 			Labels: map[string]string{
-				getLabelKey(extra.Name): serviceName,
+				getLabelKey(strings.Join([]string{c.Container.Name, extra.Name}, "-")): serviceName,
 			},
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},

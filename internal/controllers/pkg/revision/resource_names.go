@@ -99,7 +99,7 @@ func getLabels(podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision) map[string]
 	labels := getRevisionLabel(pr)
 	for _, container := range podSpec.Containers {
 		for _, extra := range container.Extras {
-			labels[getLabelKey(extra.Name)] = getServiceName(pr.GetName(), container.Container.Name, extra.Name)
+			labels[getLabelKey(strings.Join([]string{container.Container.Name, extra.Name}, "-"))] = getServiceName(pr.GetName(), container.Container.Name, extra.Name)
 		}
 	}
 	return labels

@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strings"
 
+	nddv1 "github.com/yndd/ndd-runtime/apis/common/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -107,22 +108,28 @@ type CompositeProviderSpec struct {
 	// VendorType specifies the vendor of the provider composite
 	VendorType string `json:"vendorType,omitempty"`
 	// Packages define the package specification used for creating the provider
-	Packages []PackageSpec `json:"pods,omitempty"`
+	Packages []PackageSpec `json:"packages,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:storageversion
+// CompositeProviderStatus defines the observed state of CompositeProvider
+type CompositeProviderStatus struct {
+	nddv1.ConditionedStatus `json:",inline"`
+}
 
 // A CompositeProvider provides the definition of a CompositeProvider configuration.
+// +kubebuilder:object:root=true
+// +kubebuilder:storageversion
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories={ndd,pkg},shortName=cp
 type CompositeProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec CompositeProviderSpec `json:"spec"`
+	Spec   CompositeProviderSpec   `json:"spec"`
+	Status CompositeProviderStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
 
 // A CompositeProviderList provides the list of CompositeProvider.
 type CompositeProviderList struct {

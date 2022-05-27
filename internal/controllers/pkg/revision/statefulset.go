@@ -17,6 +17,7 @@ limitations under the License.
 package revision
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -136,6 +137,21 @@ func getEnv(o *Options) []corev1.EnvVar {
 		Value: o.grpcServiceName,
 	}
 
+	svcDiscovery := corev1.EnvVar{
+		Name:  "SERVICE_DISCOVERY",
+		Value: os.Getenv("SERVICE_DISCOVERY"),
+	}
+
+	svcDiscoveryNamespace := corev1.EnvVar{
+		Name:  "SERVICE_DISCOVERY_NAMESPACE",
+		Value: os.Getenv("SERVICE_DISCOVERY_NAMESPACE"),
+	}
+
+	svcDiscoveryDCname := corev1.EnvVar{
+		Name:  "SERVICE_DISCOVERY_DCNAME",
+		Value: os.Getenv("SERVICE_DISCOVERY_DCNAME"),
+	}
+
 	envs := []corev1.EnvVar{
 		envNameSpace,
 		envPodIP,
@@ -143,6 +159,9 @@ func getEnv(o *Options) []corev1.EnvVar {
 		envNodeName,
 		envNodeIP,
 		envGrpcSvc,
+		svcDiscovery,
+		svcDiscoveryNamespace,
+		svcDiscoveryDCname,
 	}
 
 	for _, serviceInfo := range o.serviceDiscoveryInfo {
@@ -159,10 +178,6 @@ func getEnv(o *Options) []corev1.EnvVar {
 			})
 		}
 	}
-
-	//pkgmetav1.GetServiceName(r.options.ControllerConfigName, "worker")
-	//pkgmetav1.GetServiceName(r.options.ControllerConfigName, "reconciler")
-	///Name: pkgmetav1.GetServiceName(ti.controllerName, strings.Join([]string{"worker", "target"}, "-"))
 
 	return envs
 }
@@ -208,16 +223,7 @@ func getArgs(pm *pkgmetav1.Provider) []string {
 	args := []string{"start"}
 	switch pm.Spec.Pod.Type {
 	case pkgmetav1.DeploymentTypeStatefulset:
-		args = append(args, strings.Join([]string{"--controller-name", pm.Name}, "="))
-		//args = append(args, strings.Join([]string{"--service-discovery-namespace", pm.Spec.ServiceDiscoveryNamespace}, "="))
-		//args = append(args, strings.Join([]string{"--service-discovery", pm.Spec.ServiceDiscoveryNamespace}, "="))
 	case pkgmetav1.DeploymentTypeDeployment:
-		if pm.Spec.ServiceDiscoveryNamespace != nil {
-			args = append(args, strings.Join([]string{"--service-discovery-namespace", *pm.Spec.ServiceDiscoveryNamespace}, "="))
-		}
-		if pm.Spec.ServiceDiscovery != nil {
-			args = append(args, strings.Join([]string{"--service-discovery", string(*pm.Spec.ServiceDiscovery)}, "="))
-		}
 	default:
 	}
 
@@ -230,14 +236,14 @@ func getVolumeMounts(c *pkgmetav1.ContainerSpec) []corev1.VolumeMount {
 	for _, extra := range c.Extras {
 		if extra.Certificate {
 			volumes = append(volumes, corev1.VolumeMount{
-				Name:      extra.Name,
+				Name:      strings.Join([]string{c.Container.Name, extra.Name}, "-"),
 				MountPath: filepath.Join("tmp", strings.Join([]string{"k8s", extra.Name, "server"}, "-"), certPathSuffix),
 				ReadOnly:  true,
 			})
 		} else {
 			if extra.Volume {
 				volumes = append(volumes, corev1.VolumeMount{
-					Name:      extra.Name,
+					Name:      strings.Join([]string{c.Container.Name, extra.Name}, "-"),
 					MountPath: filepath.Join(extra.Name),
 				})
 			}
@@ -252,7 +258,7 @@ func getVolumes(podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision) []corev1.V
 		for _, extra := range c.Extras {
 			if extra.Certificate {
 				volume = append(volume, corev1.Volume{
-					Name: extra.Name,
+					Name: strings.Join([]string{c.Container.Name, extra.Name}, "-"),
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
 							SecretName:  getCertificateName(pr.GetName(), c.Container.Name, extra.Name),
@@ -262,7 +268,7 @@ func getVolumes(podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision) []corev1.V
 				})
 			} else {
 				volume = append(volume, corev1.Volume{
-					Name: extra.Name,
+					Name: strings.Join([]string{c.Container.Name, extra.Name}, "-"),
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},

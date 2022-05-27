@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -144,11 +143,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		"uid", cp.GetUID(),
 		"version", cp.GetResourceVersion(),
 		"name", cp.GetName(),
+		"namespace", cp.GetNamespace(),
 	)
 
 	pl := &pkgv1.ProviderList{}
 	if err := r.client.List(ctx, pl, client.MatchingLabels(map[string]string{
-		pkgv1.CompositeProviderGroupKind: types.NamespacedName{Namespace: cp.Namespace, Name: cp.Name}.String(),
+		strings.Join([]string{pkgv1.Group, "composite-provider-name"}, "/"):      cp.Name,
+		strings.Join([]string{pkgv1.Group, "composite-provider-namespace"}, "/"): cp.Namespace,
 	})); resource.IgnoreNotFound(err) != nil {
 		log.Debug(errListProviders, "error", err)
 		r.record.Event(cp, event.Warning(reasonList, errors.Wrap(err, errListProviders)))
@@ -158,11 +159,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	newProviders := []string{}
 	for _, pkg := range cp.Spec.Packages {
 		p := renderProvider(cp, pkg)
-		if err := r.client.Apply(ctx, p, resource.MustBeControllableBy(cp.GetUID())); err != nil {
+		if err := r.client.Apply(ctx, p); err != nil {
 			log.Debug(errUpdateProvider, "error", err)
 			r.record.Event(cp, event.Warning(reasonUpdateProvider, errors.Wrap(err, errUpdateProvider)))
 			return reconcile.Result{RequeueAfter: shortWait}, errors.Wrap(r.client.Status().Update(ctx, p), errUpdateStatus)
 		}
+		log.Debug("applied provider", "provider", p)
 		newProviders = append(newProviders, getProviderName(cp.Name, pkg.Name))
 	}
 
@@ -176,6 +178,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 			}
 		}
 		if !found {
+			log.Debug("active provider not found", "composite provider", cp, "provider", activeProvider.Spec.PackageSpec)
 			p := renderProvider(cp, activeProvider.Spec.PackageSpec)
 			if err := r.client.Delete(ctx, p); err != nil {
 				log.Debug(errUpdateProvider, "error", err)
@@ -185,5 +188,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		}
 	}
 
+	cp.Status.SetConditions(pkgv1.Active())
 	return reconcile.Result{}, errors.Wrap(r.client.Status().Update(ctx, cp), errUpdateStatus)
 }
