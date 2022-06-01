@@ -42,13 +42,6 @@ const (
 
 // ProviderSpec specifies the configuration of a Provider.
 type ProviderSpec struct {
-	// ServiceDiscovery is the type of service discovery
-	// +kubebuilder:validation:Enum=`consul`;`k8s`
-	// +kubebuilder:default=consul
-	ServiceDiscovery *ServiceDiscoveryType `json:"serviceDiscovery,omitempty"`
-	// ServiceDiscoverylNamespace is the name of the service discovery namespace
-	// +kubebuilder:default=consul
-	ServiceDiscoveryNamespace *string `json:"serviceDiscoveryNamespace,omitempty"`
 	// pods define the pod specification used by the controller for LCM/resource allocation
 	Pod *PodSpec `json:"pod,omitempty"`
 
