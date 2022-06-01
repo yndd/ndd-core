@@ -22,7 +22,6 @@ type PackageType string
 // Types of packages.
 const (
 	ProviderPackageType PackageType = "Provider"
-	IntentPackageType   PackageType = "Intent"
 )
 
 // MetaSpec are fields that every meta package type must implement.
