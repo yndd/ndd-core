@@ -1472,18 +1472,6 @@ spec:
                     - deployment
                     type: string
                 type: object
-              serviceDiscovery:
-                default: consul
-                description: ServiceDiscovery is the type of service discovery
-                enum:
-                - consul
-                - k8s
-                type: string
-              serviceDiscoveryNamespace:
-                default: consul
-                description: ServiceDiscoverylNamespace is the name of the service
-                  discovery namespace
-                type: string
             type: object
         required:
         - spec
