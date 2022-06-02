@@ -4,6 +4,7 @@
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 0.0.1
+REPO ?= yndd
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "preview,fast,stable")
@@ -29,15 +30,15 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # yndd.io/ndd-core-bundle:$VERSION and yndd.io/ndd-core-catalog:$VERSION.
-IMAGE_TAG_BASE ?= yndd.io/ndd-core
+IMAGE_TAG_BASE ?= $(REPO)/ndd-core
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
 BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
 
 # Image URL to use all building/pushing image targets
-IMG_CORE ?= yndd/nddcore:latest
-IMG_RBAC ?= yndd/nddrbac:latest
+IMG_CORE ?= $(REPO)/nddcore:latest
+IMG_RBAC ?= $(REPO)/nddrbac:latest
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
