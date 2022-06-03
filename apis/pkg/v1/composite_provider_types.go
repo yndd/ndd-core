@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	targetv1 "github.com/yndd/target/apis/target/v1"
 )
 
 func GetServiceName(prefix, name string) string {
@@ -106,7 +107,8 @@ const (
 // ControllerSpec specifies the configuration of a Controller.
 type CompositeProviderSpec struct {
 	// VendorType specifies the vendor of the provider composite
-	VendorType string `json:"vendorType,omitempty"`
+	//+kubebuilder:validation:Enum=unknown;nokiaSRL;nokiaSROS;
+	VendorType targetv1.VendorType `json:"vendorType,omitempty"`
 	// Packages define the package specification used for creating the provider
 	Packages []PackageSpec `json:"packages,omitempty"`
 }
