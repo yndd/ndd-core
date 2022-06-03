@@ -15,5 +15,5 @@ spec:
         - --leader-elect
         - --cache-dir=/cache
         - --debug
-        image: ${REPO}/nddcore:latest
+        image: yndd/nddcore:latest
         imagePullPolicy: Always

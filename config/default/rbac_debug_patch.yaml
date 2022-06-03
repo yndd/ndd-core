@@ -16,5 +16,5 @@ spec:
         - --management-policy=Basic
         #- --provider-clusterrole=ndd-manager-role
         - --debug
-        image: ${REPO}/nddrbac:latest
+        image: yndd/nddrbac:latest
         imagePullPolicy: Always

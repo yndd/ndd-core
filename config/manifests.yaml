@@ -2757,7 +2757,7 @@ spec:
           value: consul
         - name: SERVICE_DISCOVERY_DCNAME
           value: ""
-        image: ${REPO}/nddcore:latest
+        image: yndd/nddcore:latest
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
@@ -2848,7 +2848,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
-        image: ${REPO}/nddrbac:latest
+        image: yndd/nddrbac:latest
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
