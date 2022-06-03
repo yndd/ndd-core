@@ -54,16 +54,6 @@ const (
 
 	errUnavailableProviderDeployment = "provider package deployment is unavailable"
 
-	errNotIntent              = "not a intent package"
-	errNotIntentRevision      = "not a intent revision"
-	errDeleteIntentDeployment = "cannot delete intent package deployment"
-	errDeleteIntentSA         = "cannot delete intent package service account"
-	errDeleteIntentService    = "cannot delete intent package service"
-
-	errApplyIntentDeployment       = "cannot apply intent package deployment"
-	errApplyIntentSA               = "cannot apply intent package service account"
-	errApplyIntentService          = "cannot apply intent package service"
-	errUnavailableIntentDeployment = "intent package deployment is unavailable"
 )
 
 // A Hooks performs operations before and after a revision establishes objects.
@@ -169,6 +159,7 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 	}
 
 	var grpcServiceName string
+	var grpcCertSecretName string
 	for _, c := range pmp.Spec.Pod.Containers {
 		log.Debug("extras", "container", c.Container.Name, "extras", c.Extras)
 		for _, extra := range c.Extras {
@@ -177,6 +168,9 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 				cert := renderCertificate(pmp, pmp.Spec.Pod, c, extra, pr)
 				if err := h.client.Apply(ctx, cert); err != nil {
 					return errors.Wrap(err, errApplyProviderCertificate)
+				}
+				if extra.Name == "grpc" {
+					grpcCertSecretName = cert.Name
 				}
 			}
 			if extra.Service {
@@ -236,6 +230,7 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 		s := renderProviderStatefulSet(pmp, pmp.Spec.Pod, pr, &Options{
 			serviceDiscoveryInfo: cp.GetServicesInfoByKind(pr.GetRevisionKind()),
 			grpcServiceName:      grpcServiceName,
+			grpcCertSecretName: grpcCertSecretName,
 		})
 		if err := h.client.Apply(ctx, s); err != nil {
 			return errors.Wrap(err, errApplyProviderStatefulset)

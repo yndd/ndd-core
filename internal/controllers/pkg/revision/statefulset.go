@@ -33,6 +33,7 @@ import (
 type Options struct {
 	serviceDiscoveryInfo []*pkgv1.ServiceInfo
 	grpcServiceName      string
+	grpcCertSecretName   string
 }
 
 func renderProviderStatefulSet(pm *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision, o *Options) *appsv1.StatefulSet {
@@ -137,6 +138,11 @@ func getEnv(o *Options) []corev1.EnvVar {
 		Value: o.grpcServiceName,
 	}
 
+	certGrpcSecret := corev1.EnvVar{
+		Name:  "GRPC_CERT_SECRET_NAME",
+		Value: o.grpcCertSecretName,
+	}
+
 	svcDiscovery := corev1.EnvVar{
 		Name:  "SERVICE_DISCOVERY",
 		Value: os.Getenv("SERVICE_DISCOVERY"),
@@ -159,6 +165,7 @@ func getEnv(o *Options) []corev1.EnvVar {
 		envNodeName,
 		envNodeIP,
 		envGrpcSvc,
+		certGrpcSecret,
 		svcDiscovery,
 		svcDiscoveryNamespace,
 		svcDiscoveryDCname,
