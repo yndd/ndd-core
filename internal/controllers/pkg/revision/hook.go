@@ -53,7 +53,6 @@ const (
 	errApplyProviderValidateWebhook  = "cannot apply provider package validate webhook"
 
 	errUnavailableProviderDeployment = "provider package deployment is unavailable"
-
 )
 
 // A Hooks performs operations before and after a revision establishes objects.
@@ -230,7 +229,7 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 		s := renderProviderStatefulSet(pmp, pmp.Spec.Pod, pr, &Options{
 			serviceDiscoveryInfo: cp.GetServicesInfoByKind(pr.GetRevisionKind()),
 			grpcServiceName:      grpcServiceName,
-			grpcCertSecretName: grpcCertSecretName,
+			grpcCertSecretName:   grpcCertSecretName,
 		})
 		if err := h.client.Apply(ctx, s); err != nil {
 			return errors.Wrap(err, errApplyProviderStatefulset)
