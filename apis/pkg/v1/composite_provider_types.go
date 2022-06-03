@@ -22,10 +22,10 @@ import (
 	"strings"
 
 	nddv1 "github.com/yndd/ndd-runtime/apis/common/v1"
+	targetv1 "github.com/yndd/target/apis/target/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	targetv1 "github.com/yndd/target/apis/target/v1"
 )
 
 func GetServiceName(prefix, name string) string {

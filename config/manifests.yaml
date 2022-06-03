@@ -112,6 +112,10 @@ spec:
                 type: array
               vendorType:
                 description: VendorType specifies the vendor of the provider composite
+                enum:
+                - unknown
+                - nokiaSRL
+                - nokiaSROS
                 type: string
             type: object
           status:
@@ -622,7 +626,7 @@ spec:
                           description: Provide the container info
                           properties:
                             args:
-                              description: 'Arguments to the entrypoint. The docker
+                              description: 'Arguments to the entrypoint. The container
                                 image''s CMD is used if this is not provided. Variable
                                 references $(VAR_NAME) are expanded using the container''s
                                 environment. If a variable cannot be resolved, the
@@ -638,8 +642,8 @@ spec:
                               type: array
                             command:
                               description: 'Entrypoint array. Not executed within
-                                a shell. The docker image''s ENTRYPOINT is used if
-                                this is not provided. Variable references $(VAR_NAME)
+                                a shell. The container image''s ENTRYPOINT is used
+                                if this is not provided. Variable references $(VAR_NAME)
                                 are expanded using the container''s environment. If
                                 a variable cannot be resolved, the reference in the
                                 input string will be unchanged. Double $$ are reduced
@@ -818,7 +822,7 @@ spec:
                                 type: object
                               type: array
                             image:
-                              description: 'Docker image name. More info: https://kubernetes.io/docs/concepts/containers/images
+                              description: 'Container image name. More info: https://kubernetes.io/docs/concepts/containers/images
                                 This field is optional to allow higher level config
                                 management to default or override container images
                                 in workload controllers like Deployments and StatefulSets.'
@@ -1066,7 +1070,7 @@ spec:
                                   type: integer
                                 grpc:
                                   description: GRPC specifies an action involving
-                                    a GRPC port. This is an alpha field and requires
+                                    a GRPC port. This is a beta field and requires
                                     enabling GRPCContainerProbe feature gate.
                                   properties:
                                     port:
@@ -1278,7 +1282,7 @@ spec:
                                   type: integer
                                 grpc:
                                   description: GRPC specifies an action involving
-                                    a GRPC port. This is an alpha field and requires
+                                    a GRPC port. This is a beta field and requires
                                     enabling GRPCContainerProbe feature gate.
                                   properties:
                                     port:
@@ -1656,7 +1660,7 @@ spec:
                                   type: integer
                                 grpc:
                                   description: GRPC specifies an action involving
-                                    a GRPC port. This is an alpha field and requires
+                                    a GRPC port. This is a beta field and requires
                                     enabling GRPCContainerProbe feature gate.
                                   properties:
                                     port:

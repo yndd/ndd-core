@@ -106,6 +106,10 @@ spec:
                 type: array
               vendorType:
                 description: VendorType specifies the vendor of the provider composite
+                enum:
+                - unknown
+                - nokiaSRL
+                - nokiaSROS
                 type: string
             type: object
           status:
