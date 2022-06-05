@@ -17,6 +17,8 @@ limitations under the License.
 package revision
 
 import (
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -27,7 +29,9 @@ import (
 )
 
 func renderService(cc *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, pr pkgv1.PackageRevision) *corev1.Service { // nolint:interfacer,gocyclo
-	serviceName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
+	// we use the parent label key to get a consistent name for service discovery
+	serviceName := getServiceName(pr.GetLabels()[pkgv1.ParentLabelKey], c.Container.Name, extra.Name)
+	servicePrName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
 
 	port := int32(443)
 	if extra.Port != 0 {
@@ -39,31 +43,36 @@ func renderService(cc *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmet
 	}
 	targetPort := int(8443)
 	if extra.TargetPort != 0 {
-		targetPort = int(targetPort)
+		targetPort = int(extra.TargetPort)
+	}
+
+	spec := corev1.ServiceSpec{
+		Selector: map[string]string{
+			getLabelKey(extra.Name): servicePrName,
+		},
+		Ports: []corev1.ServicePort{
+			{
+				Name:       extra.Name,
+				Port:       port,
+				TargetPort: intstr.FromInt(targetPort),
+				Protocol:   protocol,
+			},
+		},
+	}
+	if strings.Contains(extra.Name, "headless") {
+		spec.ClusterIP = "None"
 	}
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
+			Name:      serviceName, // this is the name w/o the revision
 			Namespace: cc.Namespace,
 			Labels: map[string]string{
-				getLabelKey(extra.Name): serviceName,
+				getLabelKey(extra.Name): servicePrName,
 			},
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
-		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				getLabelKey(extra.Name): serviceName,
-			},
-			Ports: []corev1.ServicePort{
-				{
-					Name:       extra.Name,
-					Port:       port,
-					TargetPort: intstr.FromInt(targetPort),
-					Protocol:   protocol,
-				},
-			},
-		},
+		Spec: spec,
 	}
 }
 

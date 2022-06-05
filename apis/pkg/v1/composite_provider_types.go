@@ -118,11 +118,17 @@ type CompositeProviderStatus struct {
 	nddv1.ConditionedStatus `json:",inline"`
 }
 
-// A CompositeProvider provides the definition of a CompositeProvider configuration.
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
+// +genclient
+// +genclient:nonNamespaced
+
+// A CompositeProvider provides the definition of a CompositeProvider configuration.
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories={ndd,pkg},shortName=cp
+// +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="INSTALLED",type="string",JSONPath=".status.conditions[?(@.kind=='PackageInstalled')].status"
+// +kubebuilder:printcolumn:name="HEALTHY",type="string",JSONPath=".status.conditions[?(@.kind=='PackageHealthy')].status"
+// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:resource:scope=Cluster,categories={ndd,pkg}
 type CompositeProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

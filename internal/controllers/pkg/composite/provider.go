@@ -34,8 +34,8 @@ func renderProvider(cp *pkgv1.CompositeProvider, pkg pkgv1.PackageSpec) *pkgv1.P
 			Name:      getProviderName(cp.Name, pkg.Name),
 			Namespace: cp.Namespace,
 			Labels: map[string]string{
-				strings.Join([]string{pkgv1.Group, "composite-provider-name"}, "/"):      cp.Name,
-				strings.Join([]string{pkgv1.Group, "composite-provider-namespace"}, "/"): cp.Namespace,
+				pkgv1.CompositeProviderNameLabelKey:     cp.Name,
+				pkgv1.CompositeProviderNamespceLabelKey: cp.Namespace,
 			},
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(cp, pkgv1.CompositeProviderGroupVersionKind))},
 		},

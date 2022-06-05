@@ -17,7 +17,6 @@ limitations under the License.
 package revision
 
 import (
-	"fmt"
 	"strings"
 
 	pkgmetav1 "github.com/yndd/ndd-core/apis/pkg/meta/v1"
@@ -34,15 +33,17 @@ const (
 
 	userGroup = 2000
 
-	nameProviderPrefix = "ndd:provider:"
+	//nameProviderPrefix = "ndd:provider:"
 	//nameProviderMetricPrefix = "ndd:provider:metrics:"
-	nameSuffixSystem = ":system"
+	//nameSuffixSystem = ":system"
 )
 
+/*
 // getControllerPodKey returns a controller pod key
 func getControllerPodKey(ctrlCfgName, podName string) string {
 	return strings.Join([]string{ctrlCfgName, podName}, "-")
 }
+*/
 
 func getDnsName(ctrlCfgNamespace, serviceName string, x ...string) string {
 	s := []string{serviceName, ctrlCfgNamespace, serviceSuffix}
@@ -52,14 +53,15 @@ func getDnsName(ctrlCfgNamespace, serviceName string, x ...string) string {
 	return strings.Join(s, ".")
 }
 
+/*
 func getRoleName(ctrlCfgName, podName, containerName string) string {
 	return strings.Join([]string{ctrlCfgName, podName, containerName}, "-")
 }
 
 func getRevisionLabelString(pr pkgv1.PackageRevision) string {
 	return fmt.Sprintf("%s=%s", getLabelKey(revisionTag), pr.GetName())
-
 }
+*/
 
 func getRevisionLabel(pr pkgv1.PackageRevision) map[string]string {
 	return map[string]string{getLabelKey(revisionTag): pr.GetName()}
@@ -81,6 +83,7 @@ func getValidatingWebhookName(crdSingular, crdGroup string) string {
 	return strings.Join([]string{"v" + crdSingular, crdGroup}, ".")
 }
 
+/*
 func getFqTargetName(namespace, name string) string {
 	return strings.Join([]string{namespace, name}, ".")
 }
@@ -90,6 +93,7 @@ func getFqTargetName(namespace, name string) string {
 func systemClusterProviderRoleName(roleName string) string {
 	return nameProviderPrefix + roleName + nameSuffixSystem
 }
+*/
 
 func getLabelKey(suffix string) string {
 	return strings.Join([]string{pkgv1.Group, suffix}, "/")
@@ -99,7 +103,7 @@ func getLabels(podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision) map[string]
 	labels := getRevisionLabel(pr)
 	for _, container := range podSpec.Containers {
 		for _, extra := range container.Extras {
-			labels[getLabelKey(strings.Join([]string{container.Container.Name, extra.Name}, "-"))] = getServiceName(pr.GetName(), container.Container.Name, extra.Name)
+			labels[getLabelKey(extra.Name)] = getServiceName(pr.GetName(), container.Container.Name, extra.Name)
 		}
 	}
 	return labels

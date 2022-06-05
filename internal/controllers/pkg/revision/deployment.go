@@ -46,6 +46,7 @@ func renderProviderDeployment(pm *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec
 					Labels:    getLabels(podSpec, pr),
 				},
 				Spec: corev1.PodSpec{
+					Hostname:           pr.GetName(),
 					SecurityContext:    getPodSecurityContext(),
 					ServiceAccountName: renderServiceAccount(pm, podSpec, pr).GetName(),
 					ImagePullSecrets:   pr.GetPackagePullSecrets(),

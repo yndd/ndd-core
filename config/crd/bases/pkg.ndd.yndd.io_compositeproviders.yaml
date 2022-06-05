@@ -15,12 +15,20 @@ spec:
     kind: CompositeProvider
     listKind: CompositeProviderList
     plural: compositeproviders
-    shortNames:
-    - cp
     singular: compositeprovider
-  scope: Namespaced
+  scope: Cluster
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.kind=='PackageInstalled')].status
+      name: INSTALLED
+      type: string
+    - jsonPath: .status.conditions[?(@.kind=='PackageHealthy')].status
+      name: HEALTHY
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1
     schema:
       openAPIV3Schema:
         description: A CompositeProvider provides the definition of a CompositeProvider

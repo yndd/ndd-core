@@ -159,6 +159,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	newProviders := []string{}
 	for _, pkg := range cp.Spec.Packages {
 		p := renderProvider(cp, pkg)
+		//controlRef := meta.AsController(meta.TypedReferenceTo(cp, cp.GetObjectKind().GroupVersionKind()))
+		//controlRef.BlockOwnerDeletion = pointer.BoolPtr(true)
+		//meta.AddOwnerReference(cp, controlRef)
 		if err := r.client.Apply(ctx, p); err != nil {
 			log.Debug(errUpdateProvider, "error", err)
 			r.record.Event(cp, event.Warning(reasonUpdateProvider, errors.Wrap(err, errUpdateProvider)))

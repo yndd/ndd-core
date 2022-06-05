@@ -31,7 +31,8 @@ import (
 
 func renderWebhookMutate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, pr pkgv1.PackageRevision, crds []*extv1.CustomResourceDefinition) *admissionv1.MutatingWebhookConfiguration { // nolint:interfacer,gocyclo
 	certificateName := getCertificateName(pr.GetName(), c.Container.Name, extra.Name)
-	serviceName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
+	serviceName := getServiceName(pr.GetLabels()[pkgv1.ParentLabelKey], c.Container.Name, extra.Name)
+	//servicePrName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
 
 	// TODO multiple crds
 	crd := crds[0]
@@ -82,7 +83,8 @@ func renderWebhookMutate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *p
 
 func renderWebhookValidate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, pr pkgv1.PackageRevision, crds []*extv1.CustomResourceDefinition) *admissionv1.ValidatingWebhookConfiguration { // nolint:interfacer,gocyclo
 	certificateName := getCertificateName(pr.GetName(), c.Container.Name, extra.Name)
-	serviceName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
+	serviceName := getServiceName(pr.GetLabels()[pkgv1.ParentLabelKey], c.Container.Name, extra.Name)
+	//serviceName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
 
 	// TODO multiple crds
 	crd := crds[0]

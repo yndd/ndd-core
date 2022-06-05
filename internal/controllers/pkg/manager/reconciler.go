@@ -39,7 +39,6 @@ import (
 )
 
 const (
-	parentLabel      = "pkg.ndd.yndd.io/package"
 	reconcileTimeout = 1 * time.Minute
 
 	shortWait     = 30 * time.Second
@@ -217,7 +216,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 
 	// Get existing package revisions.
 	prs := r.newPackageRevisionList()
-	if err := r.client.List(ctx, prs, client.MatchingLabels(map[string]string{parentLabel: p.GetName()})); resource.IgnoreNotFound(err) != nil {
+	if err := r.client.List(ctx, prs, client.MatchingLabels(map[string]string{pkgv1.ParentLabelKey: p.GetName()})); resource.IgnoreNotFound(err) != nil {
 		log.Debug(errListRevisions, "error", err)
 		r.record.Event(p, event.Warning(reasonList, errors.Wrap(err, errListRevisions)))
 		return reconcile.Result{RequeueAfter: shortWait}, nil
@@ -322,12 +321,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 
 	// Create the non-existent package revision.
 	pr.SetName(revisionName)
-	labels := map[string]string{parentLabel: p.GetName()}
-	if v, ok := p.GetLabels()[strings.Join([]string{pkgv1.Group, "composite-provider-name"}, "/")]; ok {
-		labels[strings.Join([]string{pkgv1.Group, "composite-provider-name"}, "/")] = v
+	labels := map[string]string{pkgv1.ParentLabelKey: p.GetName()}
+	if v, ok := p.GetLabels()[pkgv1.CompositeProviderNameLabelKey]; ok {
+		labels[pkgv1.CompositeProviderNameLabelKey] = v
 	}
-	if v, ok := p.GetLabels()[strings.Join([]string{pkgv1.Group, "composite-provider-namespace"}, "/")]; ok {
-		labels[strings.Join([]string{pkgv1.Group, "composite-provider-namespace"}, "/")] = v
+	if v, ok := p.GetLabels()[pkgv1.CompositeProviderNamespceLabelKey]; ok {
+		labels[pkgv1.CompositeProviderNamespceLabelKey] = v
 	}
 	pr.SetLabels(labels)
 	pr.SetRevisionKind(p.GetKind())

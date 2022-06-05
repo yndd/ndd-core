@@ -178,6 +178,7 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 				if err := h.client.Apply(ctx, s); err != nil {
 					return errors.Wrap(err, errApplyProviderService)
 				}
+				log.Debug("extra service info", "target Port", extra.TargetPort)
 				if extra.Name == "grpc" {
 					grpcServiceName = s.Name
 				}
@@ -187,23 +188,38 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 					return errors.New("cannot apply webhook if no crds are found")
 				}
 				// deploy a mutating webhook
+
 				whMutate := renderWebhookMutate(pmp, pmp.Spec.Pod, c, extra, pr, crds)
 				if err := h.client.Apply(ctx, whMutate); err != nil {
 					return errors.Wrap(err, errApplyProviderMutateWebhook)
 				}
+
 				// deploy a validating webhook
+
 				whValidate := renderWebhookValidate(pmp, pmp.Spec.Pod, c, extra, pr, crds)
 				if err := h.client.Apply(ctx, whValidate); err != nil {
 					return errors.Wrap(err, errApplyProviderValidateWebhook)
 				}
+
 			}
 		}
 	}
 
 	switch pmp.Spec.Pod.Type {
 	case pkgmetav1.DeploymentTypeDeployment:
+		cp, err := h.getCompositeProvider(ctx, pr)
+		serviceDiscoveryInfo := []*pkgv1.ServiceInfo{}
+		if err != nil {
+			if !strings.Contains(err.Error(), "not found") {
+				return errors.Wrap(err, errCompositeProvider)
+			}
+		} else {
+			serviceDiscoveryInfo = cp.GetServicesInfoByKind(pr.GetRevisionKind())
+		}
 		d := renderProviderDeployment(pmp, pmp.Spec.Pod, pr, &Options{
-			grpcServiceName: grpcServiceName,
+			serviceDiscoveryInfo: serviceDiscoveryInfo,
+			grpcServiceName:      grpcServiceName,
+			grpcCertSecretName:   grpcCertSecretName,
 		})
 		if err := h.client.Apply(ctx, d); err != nil {
 			return errors.Wrap(err, errApplyProviderDeployment)
@@ -222,12 +238,17 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 		}
 	case pkgmetav1.DeploymentTypeStatefulset:
 		cp, err := h.getCompositeProvider(ctx, pr)
+		serviceDiscoveryInfo := []*pkgv1.ServiceInfo{}
 		if err != nil {
-			return errors.Wrap(err, errCompositeProvider)
+			if !strings.Contains(err.Error(), "not found") {
+				return errors.Wrap(err, errCompositeProvider)
+			}
+		} else {
+			serviceDiscoveryInfo = cp.GetServicesInfoByKind(pr.GetRevisionKind())
 		}
 		log.Debug("statefulset serviceInfo", "kind", pr.GetRevisionKind(), "servicediscoveryInfo", cp.GetServicesInfoByKind(pr.GetRevisionKind()), "grpcserviceName", grpcServiceName)
 		s := renderProviderStatefulSet(pmp, pmp.Spec.Pod, pr, &Options{
-			serviceDiscoveryInfo: cp.GetServicesInfoByKind(pr.GetRevisionKind()),
+			serviceDiscoveryInfo: serviceDiscoveryInfo,
 			grpcServiceName:      grpcServiceName,
 			grpcCertSecretName:   grpcCertSecretName,
 		})
@@ -248,11 +269,11 @@ func (h *ProviderHooks) getCompositeProvider(ctx context.Context, pr pkgv1.Packa
 	h.log.Debug("getCompositeProvider", "pr", pr)
 	h.log.Debug("getCompositeProvider", "GetOwnerReferences", pr.GetOwnerReferences())
 
-	cpName, ok := pr.GetLabels()[strings.Join([]string{pkgv1.Group, "composite-provider-name"}, "/")]
+	cpName, ok := pr.GetLabels()[pkgv1.CompositeProviderNameLabelKey]
 	if !ok {
 		return nil, errors.New("composite-provider-name key not found in labels")
 	}
-	cpNamespace, ok := pr.GetLabels()[strings.Join([]string{pkgv1.Group, "composite-provider-namespace"}, "/")]
+	cpNamespace, ok := pr.GetLabels()[pkgv1.CompositeProviderNamespceLabelKey]
 	if !ok {
 		return nil, errors.New("composite-provider-namespace key not found in labels")
 	}

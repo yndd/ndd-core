@@ -17,8 +17,6 @@ limitations under the License.
 package revision
 
 import (
-	"strings"
-
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,21 +28,32 @@ import (
 
 func renderCertificate(p *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, c *pkgmetav1.ContainerSpec, extra *pkgmetav1.Extras, pr pkgv1.PackageRevision) *certv1.Certificate { // nolint:interfacer,gocyclo
 	certificateName := getCertificateName(pr.GetName(), c.Container.Name, extra.Name)
-	serviceName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
+	serviceName := getServiceName(pr.GetLabels()[pkgv1.ParentLabelKey], c.Container.Name, extra.Name)
+	servicePrName := getServiceName(pr.GetName(), c.Container.Name, extra.Name)
+
+	//newCertServiceName := getServiceName(strings.Join([]string{pr.GetName(), "0"}, "-"), c.Container.Name, extra.Name)
 
 	return &certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      certificateName,
 			Namespace: p.Namespace,
 			Labels: map[string]string{
-				getLabelKey(strings.Join([]string{c.Container.Name, extra.Name}, "-")): serviceName,
+				getLabelKey(extra.Name): serviceName,
 			},
 			OwnerReferences: []metav1.OwnerReference{meta.AsController(meta.TypedReferenceTo(pr, pkgv1.ProviderRevisionGroupVersionKind))},
 		},
 		Spec: certv1.CertificateSpec{
 			DNSNames: []string{
+				//strings.Join([]string{pr.GetName(), "0"}, "-"),
+				//strings.Join([]string{pr.GetName(), "0", "cluster", "local"}, "-"),
+				//getDnsName(p.Namespace, pr.GetName()+"-0"),
+				//getDnsName(p.Namespace, pr.GetName()+"-0", "cluster", "local"),
 				getDnsName(p.Namespace, serviceName),
 				getDnsName(p.Namespace, serviceName, "cluster", "local"),
+				getDnsName(p.Namespace, servicePrName),
+				getDnsName(p.Namespace, servicePrName, "cluster", "local"),
+				//getDnsName(p.Namespace, newCertServiceName),
+				//getDnsName(p.Namespace, newCertServiceName, "cluster", "local"),
 			},
 			IssuerRef: certmetav1.ObjectReference{
 				Kind: "Issuer",
