@@ -2760,9 +2760,9 @@ spec:
             fieldRef:
               fieldPath: status.podIP
         - name: SERVICE_DISCOVERY
-          value: consul
+          value: ""
         - name: SERVICE_DISCOVERY_NAMESPACE
-          value: consul
+          value: ""
         - name: SERVICE_DISCOVERY_DCNAME
           value: ""
         image: yndd/nddcore:latest
