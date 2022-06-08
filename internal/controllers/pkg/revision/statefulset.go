@@ -31,9 +31,10 @@ import (
 )
 
 type Options struct {
-	serviceDiscoveryInfo []*pkgv1.ServiceInfo
-	grpcServiceName      string
-	grpcCertSecretName   string
+	serviceDiscoveryInfo  []*pkgv1.ServiceInfo
+	grpcServiceName       string
+	grpcCertSecretName    string
+	compositeProviderName string
 }
 
 func renderProviderStatefulSet(pm *pkgmetav1.Provider, podSpec *pkgmetav1.PodSpec, pr pkgv1.PackageRevision, o *Options) *appsv1.StatefulSet {
@@ -185,6 +186,13 @@ func getEnv(o *Options) []corev1.EnvVar {
 				Value: serviceInfo.ServiceName,
 			})
 		}
+	}
+
+	if o.compositeProviderName != "" {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "COMPOSITE_PROVIDER_NAME",
+			Value: o.compositeProviderName,
+		})
 	}
 
 	return envs

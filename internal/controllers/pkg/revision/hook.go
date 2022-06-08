@@ -159,6 +159,7 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 
 	var grpcServiceName string
 	var grpcCertSecretName string
+	var compositeProviderName string
 	for _, c := range pmp.Spec.Pod.Containers {
 		log.Debug("extras", "container", c.Container.Name, "extras", c.Extras)
 		for _, extra := range c.Extras {
@@ -215,11 +216,13 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 			}
 		} else {
 			serviceDiscoveryInfo = cp.GetServicesInfoByKind(pr.GetRevisionKind())
+			compositeProviderName = cp.Name
 		}
 		d := renderProviderDeployment(pmp, pmp.Spec.Pod, pr, &Options{
-			serviceDiscoveryInfo: serviceDiscoveryInfo,
-			grpcServiceName:      grpcServiceName,
-			grpcCertSecretName:   grpcCertSecretName,
+			serviceDiscoveryInfo:  serviceDiscoveryInfo,
+			grpcServiceName:       grpcServiceName,
+			grpcCertSecretName:    grpcCertSecretName,
+			compositeProviderName: compositeProviderName,
 		})
 		if err := h.client.Apply(ctx, d); err != nil {
 			return errors.Wrap(err, errApplyProviderDeployment)
@@ -245,12 +248,14 @@ func (h *ProviderHooks) Post(ctx context.Context, pkg runtime.Object, pr pkgv1.P
 			}
 		} else {
 			serviceDiscoveryInfo = cp.GetServicesInfoByKind(pr.GetRevisionKind())
+			compositeProviderName = cp.Name
 		}
 		log.Debug("statefulset serviceInfo", "kind", pr.GetRevisionKind(), "servicediscoveryInfo", cp.GetServicesInfoByKind(pr.GetRevisionKind()), "grpcserviceName", grpcServiceName)
 		s := renderProviderStatefulSet(pmp, pmp.Spec.Pod, pr, &Options{
-			serviceDiscoveryInfo: serviceDiscoveryInfo,
-			grpcServiceName:      grpcServiceName,
-			grpcCertSecretName:   grpcCertSecretName,
+			serviceDiscoveryInfo:  serviceDiscoveryInfo,
+			grpcServiceName:       grpcServiceName,
+			grpcCertSecretName:    grpcCertSecretName,
+			compositeProviderName: compositeProviderName,
 		})
 		if err := h.client.Apply(ctx, s); err != nil {
 			return errors.Wrap(err, errApplyProviderStatefulset)
